@@ -11,6 +11,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { TeacherService } from './teacher.service';
 import { JwtService } from '@nestjs/jwt';
@@ -200,7 +201,7 @@ export class TeacherController {
   @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
   @Patch('soft-delete/:id')
   softDelete(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SoftDeleteDto,
     @CurrentUser() admin: IToken,
   ) {
@@ -243,7 +244,7 @@ export class TeacherController {
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
   @Patch('activate/:id')
-  teacherActivate(@Param('id') id: string) {
+  teacherActivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.updateStatus(id);
   }
 
@@ -259,7 +260,7 @@ export class TeacherController {
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN)
   @Patch('restore/:id')
-  restoreTeacher(@Param('id') id: string) {
+  restoreTeacher(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.restoreTeacher(id);
   }
 
@@ -267,7 +268,7 @@ export class TeacherController {
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.findOneById(id);
   }
 
@@ -275,7 +276,7 @@ export class TeacherController {
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN)
   @Delete('hard-delete/:id')
-  hardDelete(@Param('id') id: string) {
+  hardDelete(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.delete(id);
   }
 

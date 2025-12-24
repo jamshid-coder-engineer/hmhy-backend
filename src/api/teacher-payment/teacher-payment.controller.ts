@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { TeacherPaymentService } from './teacher-payment.service';
 import { CreateTeacherPaymentDto } from './dto/create-teacher-payment.dto';
@@ -26,20 +27,20 @@ export class TeacherPaymentController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherPaymentService.findOne(+id);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTeacherPaymentDto: UpdateTeacherPaymentDto,
   ) {
     return this.teacherPaymentService.update(+id, updateTeacherPaymentDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherPaymentService.remove(+id);
   }
 }

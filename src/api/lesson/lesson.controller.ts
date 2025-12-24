@@ -7,6 +7,7 @@ import {
   Patch,
   Delete,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -116,7 +117,7 @@ export class LessonController {
   lessonComplete(
     @CurrentUser() teacher: IToken,
     @Body() dto: LessonComplete,
-    @Param('id') lessonId: string,
+    @Param('id', ParseUUIDPipe) lessonId: string,
   ) {
     return this.lessonService.lessonComplete(teacher.id, dto, lessonId);
   }
@@ -139,7 +140,7 @@ export class LessonController {
 
   @Get('my-lessons')
    @UseGuards(AuthGuard, RolesGuard)
-  @AccessRoles(Roles.STUDENT, Roles.TEACHER)
+  @AccessRoles(Roles.TEACHER)
   @ApiOperation({
     summary: 'Mening darslarim (Student)',
     description: "Student o'zi booking qilgan barcha darslarni ko'radi",
@@ -150,19 +151,6 @@ export class LessonController {
   })
   getMyLessons(@CurrentUser() user: IToken) {
     return this.lessonService.getMyLessons(user.id);
-  }
-
-  @Get('teacher-lessons')
-  @ApiOperation({
-    summary: "Teacher darslar ro'yxati",
-    description: "Teacher o'zi yaratgan barcha darslarni ko'radi",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Teacher darslar ro'yxati",
-  })
-  getTeacherLessons(@CurrentUser() user: IToken) {
-    return this.lessonService.getTeacherLessons(user.id);
   }
 
   @Post(':id/book')
@@ -184,7 +172,7 @@ export class LessonController {
     status: 404,
     description: 'Dars topilmadi',
   })
-  bookLesson(@Param('id') id: string, @CurrentUser() user: IToken) {
+  bookLesson(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: IToken) {
     console.log(user);
     return this.lessonService.bookLesson(id, user.id);
   }
@@ -198,7 +186,7 @@ export class LessonController {
     status: 200,
     description: 'Dars muvaffaqiyatli yangilandi',
   })
-  update(@Param('id') id: string, @Body() updateLessonDto: UpdateLessonDto) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateLessonDto: UpdateLessonDto) {
     return this.lessonService.updateLesson(id, updateLessonDto);
   }
 
@@ -211,7 +199,7 @@ export class LessonController {
     status: 200,
     description: "Dars muvaffaqiyatli o'chirildi",
   })
-  delete(@Param('id') id: string) {
+  delete(@Param('id', ParseUUIDPipe) id: string) {
     return this.lessonService.deleteLesson(id);
   }
 }

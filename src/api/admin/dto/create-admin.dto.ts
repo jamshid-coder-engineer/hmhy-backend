@@ -14,21 +14,21 @@ export class CreateAdminDto {
   @IsNotEmpty()
   @MinLength(3)
   @MaxLength(50)
-  @ApiProperty({ example: 'suhrob', description: 'Admin username' })
+  @ApiProperty({ example: 'jamshid', description: 'Admin username' })
   username: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(100)
-  @ApiProperty({ example: 'suhrob1234', description: 'Admin password' })
+  @ApiProperty({ example: 'jamshid000!', description: 'Admin password' })
   password: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(13)
   @MaxLength(15)
-  @ApiProperty({ example: '+998901234567', description: 'Admin phone number' })
+  @ApiProperty({ example: '+998997001166', description: 'Admin phone number' })
   phoneNumber: string;
 
   @IsEnum(Roles)

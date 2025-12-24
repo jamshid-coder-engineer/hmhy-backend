@@ -21,6 +21,12 @@ import { w } from 'node_modules/@faker-js/faker/dist/airline-DF6RqYmq';
 import { successRes } from 'src/infrastructure/response/success.response';
 import { LessonHistory } from 'src/core/entity/lessonHistory.entity';
 import type { LessonHistoryRepository } from 'src/core/repository/lessonHistory.repository';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class LessonService extends BaseService<
@@ -42,38 +48,36 @@ export class LessonService extends BaseService<
     super(lessonRepo);
   }
 
-  /**
-   * Teacher yangi dars yaratadi (studentisiz)
-   */
   async createLesson(dto: CreateLessonDto, teacherId: string): Promise<Lesson> {
-    // Validate time range
-    const startTime = new Date(dto.startTime);
-    const endTime = new Date(dto.endTime);
+    const startTime = dayjs
+      .tz(dto.startTime.replace('Z', ''), 'Asia/Tashkent')
+      .toDate();
+    const endTime = dayjs
+      .tz(dto.endTime.replace('Z', ''), 'Asia/Tashkent')
+      .toDate();
+    const now = new Date();
 
     if (startTime >= endTime) {
-      throw new BadRequestException('End time must be after start time');
-    }
-
-    if (startTime < new Date()) {
-      throw new BadRequestException('Start time cannot be in the past');
-    }
-
-    // Find teacher (current user)
-    const teacher = await this.teacherRepo.findOne({
-      where: { id: teacherId },
-    });
-    if (!teacher) {
-      throw new NotFoundException(`Teacher with ID ${teacherId} not found`);
-    }
-
-    // Validate Google Calendar credentials
-    if (!teacher.googleAccessToken || !teacher.googleRefreshToken) {
       throw new BadRequestException(
-        'Teacher has not connected Google Calendar',
+        "Tugash vaqti boshlanish vaqtidan keyin bo'lishi kerak",
       );
     }
 
-    // Check for scheduling conflicts (teacher already has a lesson at this time)
+    if (startTime < now) {
+      throw new BadRequestException(
+        "O'tmishdagi vaqtga dars belgilab bo'lmaydi",
+      );
+    }
+
+    const teacher = await this.teacherRepo.findOne({
+      where: { id: teacherId },
+    });
+    if (!teacher) throw new NotFoundException(`O'qituvchi topilmadi`);
+
+    if (!teacher.googleAccessToken || !teacher.googleRefreshToken) {
+      throw new BadRequestException("Google Calendar ulangan bo'lishi shart");
+    }
+
     const conflictingLesson = await this.lessonRepo.findOne({
       where: {
         teacherId: teacherId,
@@ -82,19 +86,18 @@ export class LessonService extends BaseService<
     });
 
     if (conflictingLesson) {
-      throw new BadRequestException('You already have a lesson at this time');
+      throw new BadRequestException('Bu vaqtda sizda boshqa dars mavjud');
     }
 
     try {
-      // Create Google Calendar event
       const calendar = this.calendarService.getClient(teacher);
 
       const event = await calendar.events.insert({
         calendarId: 'primary',
         conferenceDataVersion: 1,
         requestBody: {
-          summary: `Lesson: ${dto.name}`,
-          description: 'Available lesson slot for students to book',
+          summary: `Dars: ${dto.name}`,
+          description: 'Dars uchun Google Meet havolasi',
           start: {
             dateTime: startTime.toISOString(),
             timeZone: 'Asia/Tashkent',
@@ -105,25 +108,18 @@ export class LessonService extends BaseService<
           },
           conferenceData: {
             createRequest: {
-              requestId: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              requestId: `lesson-${Date.now()}`,
               conferenceSolutionKey: { type: 'hangoutsMeet' },
             },
-          },
-          reminders: {
-            useDefault: false,
-            overrides: [
-              { method: 'email', minutes: 24 * 60 }, // 1 day before
-              { method: 'popup', minutes: 30 }, // 30 minutes before
-            ],
           },
         },
       });
 
-      // Create lesson in database (without student initially)
+
       const lesson = this.lessonRepo.create({
         name: dto.name,
-        startTime,
-        endTime,
+        startTime: startTime,
+        endTime: endTime,
         price: dto.price,
         status: dto.status ?? LessonStatus.AVAILABLE,
         isPaid: dto.isPaid ?? false,
@@ -132,35 +128,16 @@ export class LessonService extends BaseService<
         googleEventId: event.data.id ?? undefined,
       });
 
-      // Assign teacher relation
-      lesson.teacher = teacher;
-
       return await this.lessonRepo.save(lesson);
-    } catch (error) {
-      // Handle Google Calendar API errors
-      if (error.code === 401) {
-        throw new BadRequestException(
-          'Google Calendar authorization expired. Please reconnect.',
-        );
-      }
-      if (error.code === 403) {
-        throw new BadRequestException(
-          'Insufficient permissions for Google Calendar',
-        );
-      }
-      throw new BadRequestException(
-        `Failed to create lesson: ${error.message}`,
-      );
+    } catch (error: any) {
+      throw new BadRequestException(`Xatolik: ${error.message}`);
     }
   }
-  // lesson.service.ts
-  // lesson.service.ts
   async lessonComplete(
     teacherId: string,
     dto: LessonComplete,
     lessonId: string,
   ) {
-    // Lessonni topish
     const lesson = await this.lessonRepo.findOne({
       where: { id: lessonId },
     });
@@ -169,21 +146,15 @@ export class LessonService extends BaseService<
       throw new NotFoundException('Lesson not found');
     }
 
-    // Teacher tegishliligini tekshirish
     if (lesson.teacherId !== teacherId) {
       throw new ForbiddenException('You can only complete your own lessons');
     }
 
-    // Agar allaqachon completed bo'lsa
     if (lesson.status === LessonStatus.COMPLETED) {
       throw new BadRequestException('Lesson is already completed');
     }
 
-          console.log(teacherId, lesson);
-
-
     return await this.lessonRepo.manager.transaction(async (manager) => {
-      // LessonHistory yaratish - faqat schemadagi maydonlar
       const lessonHistory = await manager.save(LessonHistory, {
         lessonId: lessonId,
         star: dto.star || Rating.FIVE,
@@ -192,7 +163,6 @@ export class LessonService extends BaseService<
         studentId: lesson.studentId,
       });
 
-      // Lessonni o'chirish
       await manager.delete(Lesson, lessonId);
 
       return successRes({
@@ -201,11 +171,8 @@ export class LessonService extends BaseService<
       });
     });
   }
-  /**
-   * Student darsni booking qiladi
-   */
+
   async bookLesson(lessonId: string, studentId: string): Promise<Lesson> {
-    // Find lesson
     const lesson = await this.lessonRepo.findOne({
       where: { id: lessonId },
       relations: ['teacher'],
@@ -215,7 +182,6 @@ export class LessonService extends BaseService<
       throw new NotFoundException(`Lesson with ID ${lessonId} not found`);
     }
 
-    // Check if lesson is available
     if (lesson.status !== LessonStatus.AVAILABLE) {
       throw new BadRequestException('Lesson is not available for booking');
     }
@@ -224,7 +190,6 @@ export class LessonService extends BaseService<
       throw new BadRequestException('Lesson is already booked');
     }
 
-    // Find student
     const student = await this.studentRepo.findOne({
       where: { id: studentId },
     });
@@ -232,7 +197,6 @@ export class LessonService extends BaseService<
       throw new NotFoundException(`Student with ID ${studentId} not found`);
     }
 
-    // Check if student has conflicting lessons
     const conflictingLesson = await this.lessonRepo.findOne({
       where: {
         studentId: studentId,
@@ -245,7 +209,6 @@ export class LessonService extends BaseService<
     }
 
     try {
-      // Update Google Calendar event with student info
       if (lesson.googleEventId && lesson.teacher) {
         const calendar = this.calendarService.getClient(lesson.teacher);
 
@@ -258,7 +221,6 @@ export class LessonService extends BaseService<
         });
       }
 
-      // Update lesson with student
       lesson.studentId = studentId;
       lesson.student = student;
       lesson.status = LessonStatus.BOOKED;
@@ -270,9 +232,6 @@ export class LessonService extends BaseService<
     }
   }
 
-  /**
-   * Darsni yangilash
-   */
   async updateLesson(id: string, dto: UpdateLessonDto): Promise<Lesson> {
     const lesson = await this.lessonRepo.findOne({
       where: { id },
@@ -280,19 +239,24 @@ export class LessonService extends BaseService<
     });
 
     if (!lesson) {
-      throw new NotFoundException(`Lesson with ID ${id} not found`);
+      throw new NotFoundException(`Dars topilmadi (ID: ${id})`);
     }
 
-    // If time is being updated, validate and update Google Calendar
     if (dto.startTime || dto.endTime) {
       const startTime = dto.startTime
-        ? new Date(dto.startTime)
+        ? dayjs.tz(dto.startTime.replace('Z', ''), 'Asia/Tashkent').toDate()
         : lesson.startTime;
-      const endTime = dto.endTime ? new Date(dto.endTime) : lesson.endTime;
+
+      const endTime = dto.endTime
+        ? dayjs.tz(dto.endTime.replace('Z', ''), 'Asia/Tashkent').toDate()
+        : lesson.endTime;
 
       if (startTime >= endTime) {
-        throw new BadRequestException('End time must be after start time');
+        throw new BadRequestException(
+          'Tugash vaqti boshlanish vaqtidan keyin bolishi kerak',
+        );
       }
+
 
       if (lesson.googleEventId && lesson.teacher) {
         try {
@@ -312,9 +276,9 @@ export class LessonService extends BaseService<
               },
             },
           });
-        } catch (error) {
+        } catch (error: any) {
           throw new BadRequestException(
-            `Failed to update Google Calendar event: ${error.message}`,
+            `Google Calendar yangilashda xatolik: ${error.message}`,
           );
         }
       }
@@ -323,7 +287,6 @@ export class LessonService extends BaseService<
       lesson.endTime = endTime;
     }
 
-    // Update other fields
     if (dto.name) lesson.name = dto.name;
     if (dto.status) lesson.status = dto.status;
     if (dto.price !== undefined) lesson.price = dto.price;
@@ -332,9 +295,6 @@ export class LessonService extends BaseService<
     return await this.lessonRepo.save(lesson);
   }
 
-  /**
-   * Darsni o'chirish
-   */
   async deleteLesson(id: string): Promise<void> {
     const lesson = await this.lessonRepo.findOne({
       where: { id },
@@ -345,7 +305,6 @@ export class LessonService extends BaseService<
       throw new NotFoundException(`Lesson with ID ${id} not found`);
     }
 
-    // Delete Google Calendar event
     if (lesson.googleEventId && lesson.teacher) {
       try {
         const calendar = this.calendarService.getClient(lesson.teacher);
@@ -355,16 +314,12 @@ export class LessonService extends BaseService<
         });
       } catch (error) {
         console.error('Failed to delete Google Calendar event:', error.message);
-        // Continue with lesson deletion even if Calendar deletion fails
       }
     }
 
     await this.lessonRepo.remove(lesson);
   }
 
-  /**
-   * Barcha bo'sh darslarni olish (studentlar uchun)
-   */
   async getAvailableLessons(): Promise<Lesson[]> {
     return await this.lessonRepo.find({
       where: {
@@ -375,9 +330,6 @@ export class LessonService extends BaseService<
     });
   }
 
-  /**
-   * Student o'z darslarini ko'radi
-   */
   async getMyLessons(studentId: string): Promise<Lesson[]> {
     return await this.lessonRepo.find({
       where: { studentId },
@@ -386,9 +338,6 @@ export class LessonService extends BaseService<
     });
   }
 
-  /**
-   * Teacher o'z darslarini ko'radi
-   */
   async getTeacherLessons(teacherId: string): Promise<Lesson[]> {
     return await this.lessonRepo.find({
       where: { teacherId },

@@ -127,7 +127,7 @@ export class NotificationService implements OnModuleInit {
     
     // 15 va 25 daqiqa oralig'idagi darslarni qidiramiz
     // Masalan: Hozir 13:00 bo'lsa, 13:15 va 13:25 orasidagi darslar
-    const startWindow = new Date(now.getTime() + 15 * 60000);
+    const startWindow = new Date(now.getTime() - 5  * 60000);
     const endWindow = new Date(now.getTime() + 25 * 60000);
 
     this.logger.log('=============================================');

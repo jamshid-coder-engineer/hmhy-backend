@@ -4,11 +4,11 @@ import { ApiProperty } from '@nestjs/swagger';
 export class AdminSignInDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ example: 'suhrob', description: 'Admin username' })
+  @ApiProperty({ example: 'jamshid', description: 'Admin username' })
   username: string;
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ example: 'suhrob', description: 'Admin password' })
+  @ApiProperty({ example: 'jamshid000!', description: 'Admin password' })
   password: string;
 }
