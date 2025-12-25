@@ -40,7 +40,7 @@ export class AdminController {
         status: 'success',
         data: {
           id: '1',
-          username: 'suhrob',
+          username: 'jamshid',
           phoneNumber: '+998901234567',
           role: 'ADMIN',
         },
@@ -69,7 +69,7 @@ export class AdminController {
         data: [
           {
             id: '1',
-            username: 'suhrob',
+            username: 'jamshid',
             phoneNumber: '+998901234567',
             role: 'ADMIN',
           },
@@ -81,7 +81,14 @@ export class AdminController {
   @AccessRoles(Roles.SUPER_ADMIN)
   @Get()
   findAll() {
-    return this.adminService.findAll();
+    return this.adminService.findAll({
+      select: {
+        id: true,
+        username: true,
+        phoneNumber: true,
+        role: true,
+      },
+    });
   }
 
   @ApiOperation({ summary: 'Get admin by ID' })
@@ -93,7 +100,7 @@ export class AdminController {
         status: 'success',
         data: {
           id: '1',
-          username: 'suhrob',
+          username: 'jamshid',
           phoneNumber: '+998901234567',
           role: 'ADMIN',
         },
@@ -122,8 +129,8 @@ export class AdminController {
         status: 'success',
         data: {
           id: '1',
-          username: 'suhrob_updated',
-          phoneNumber: '+998901234567',
+          username: 'jamshid_updated',
+          phoneNumber: '+99816161616',
           role: 'ADMIN',
         },
       },

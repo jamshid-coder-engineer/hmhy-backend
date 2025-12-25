@@ -106,10 +106,10 @@ export class Application {
 
   private setupSwagger(app: NestExpressApplication): void {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('HMHY API')
-      .setDescription('Help Me Help You')
+      .setTitle('CRM API')
+      .setDescription('CRM API')
       .setVersion('1.0')
-      .addTag('HMHY API')
+      .addTag('CRM API')
       .addBearerAuth({
         type: 'http',
         scheme: 'Bearer',
@@ -123,8 +123,8 @@ export class Application {
 
   private async startServer(app: NestExpressApplication): Promise<void> {
     await app.listen(config.PORT, () => {
-      console.log(`Server running on: ${config.BACKEND_URL}`);
       console.log(`Swagger docs: ${config.SWAGGER_URL}`);
+      // console.log(`Server running on: ${config.BACKEND_URL}`);
     });
     
   }

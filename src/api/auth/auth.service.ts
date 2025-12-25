@@ -61,7 +61,7 @@ export class AuthService {
     if (!teacher || !isMatchPass)
       throw new BadRequestException('Email or password incorrect');
 
-    const payload: IToken = { id: teacher.id, role: teacher.role as any };
+    const payload: IToken = { id: teacher.id, isActive: teacher.isActive, role: teacher.role as any };
     const accessToken = await this.token.accessToken(payload);
     const refreshToken = await this.token.refreshToken(payload);
     await this.token.writeCookie(res, 'token', refreshToken, 30);

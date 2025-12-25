@@ -61,10 +61,10 @@
 //     });
 
 //     const message =
-//       `🔔 *Dars eslatmasi!*\n\n` +
-//       `📚 *Fan:* ${(lesson as any).name || 'Dars'}\n` +
-//       `⏰ *Vaqt:* ${timeString}\n` +
-//       `📍 *Joy:* ${(lesson as any).room || 'Onlayn'}\n\n` +
+//       ` *Dars eslatmasi!*\n\n` +
+//       ` *Fan:* ${(lesson as any).name || 'Dars'}\n` +
+//       ` *Vaqt:* ${timeString}\n` +
+//       ` *Joy:* ${(lesson as any).room || 'Onlayn'}\n\n` +
 //       `Iltimos, darsga kechikmasdan kiring!`;
 
 //     try {
@@ -116,12 +116,12 @@ export class NotificationService implements OnModuleInit {
       this.bot = new Telegraf(config.TELEGRAM_BOT_TOKEN);
       this.logger.log('✅ Telegram bot initialized');
     } catch (error) {
-      this.logger.error('❌ Telegram bot initialization error:', error.message);
+      this.logger.error(' Telegram bot initialization error:', error.message);
     }
   }
 
   // Debug uchun har daqiqada ishlaydi (Keyin EVERY_5_MINUTES ga qaytaramiz)
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression. EVERY_MINUTE)
   async handleLessonReminders() {
     const now = new Date();
     
@@ -164,7 +164,7 @@ export class NotificationService implements OnModuleInit {
             this.logger.log(` - Dars: "${l.name}" | Vaqti: ${l.startTime} | (JS Date: ${new Date(l.startTime).toString()})`);
           });
         } else {
-          this.logger.error('❌ Bazada yaqin 2 soat ichida umuman dars yoq! Yangi dars yarating.');
+          this.logger.error('Bazada yaqin 2 soat ichida umuman dars yoq! Yangi dars yarating.');
         }
       }
 
@@ -182,7 +182,7 @@ export class NotificationService implements OnModuleInit {
       }
 
     } catch (error) {
-      this.logger.error('❌ Darslarni qidirishda xatolik:', error.message);
+      this.logger.error('Darslarni qidirishda xatolik:', error.message);
     }
     
     this.logger.log('=============================================');
@@ -210,7 +210,7 @@ export class NotificationService implements OnModuleInit {
 
     try {
       if (!this.bot) {
-        this.logger.error('❌ Bot initialized emas.');
+        this.logger.error('Bot initialized emas.');
         return;
       }
 
@@ -222,7 +222,7 @@ export class NotificationService implements OnModuleInit {
       );
     } catch (error) {
       this.logger.error(
-        `❌ Telegram xabar yuborishda xatolik (TG ID: ${student.tgId}): ${error.message}`,
+        `Telegram xabar yuborishda xatolik (TG ID: ${student.tgId}): ${error.message}`,
       );
     }
   }

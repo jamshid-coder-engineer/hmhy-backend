@@ -41,8 +41,8 @@ export class LessonController {
     description: "Bo'sh darslar ro'yxati",
   })
   findAll() {
-    return this.lessonService.findAll();
-  }
+    return this.lessonService.findAll({});
+  } 
 
   @Get('for-teacher')
   @UseGuards(AuthGuard, RolesGuard)

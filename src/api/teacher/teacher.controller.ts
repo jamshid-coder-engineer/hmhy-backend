@@ -89,46 +89,45 @@ export class TeacherController {
     )(req, res);
   }
 
-  // ===================== GOOGLE CALLBACK =====================
-  @Get('google/callback')
-  @UseGuards(AuthPassportGuard('google'))
-  async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const googleUser = req.user as any;
+  // @Get('google/callback')
+  // @UseGuards(AuthPassportGuard('google'))
+  // async googleCallback(@Req() req: Request, @Res() res: Response) {
+  //   const googleUser = req.user as any;
 
-    try {
-      await this.teacherService.createIncompleteGoogleTeacher({
-        email: googleUser.email,
-        fullName: googleUser.fullName,
-        googleId: googleUser.googleId,
-        imageUrl: googleUser.imageUrl,
-        accessToken: googleUser.accessToken,
-        refreshToken: googleUser.refreshToken,
-      });
+  //   try {
+  //     await this.teacherService.createIncompleteGoogleTeacher({
+  //       email: googleUser.email,
+  //       fullName: googleUser.fullName,
+  //       googleId: googleUser.googleId,
+  //       imageUrl: googleUser.imageUrl,
+  //       accessToken: googleUser.accessToken,
+  //       refreshToken: googleUser.refreshToken,
+  //     });
 
-      const teacher = await this.teacherService.findCompleteGoogleTeacher(
-        googleUser.email,
-      );
+  //     const teacher = await this.teacherService.findCompleteGoogleTeacher(
+  //       googleUser.email,
+  //     );
 
-      if (teacher?.isComplete) {
-        const token = this.jwtService.sign({
-          id: teacher.id,
-          email: teacher.email,
-        });
-        return res.redirect(
-          `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
-        );
-      }
+  //     if (teacher?.isComplete) {
+  //       const token = this.jwtService.sign({
+  //         id: teacher.id,
+  //         email: teacher.email,
+  //       });
+  //       return res.redirect(
+  //         `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
+  //       );
+  //     }
 
-      // Agar ro'yxat to'liq emas bo'lsa
-      return res.redirect(
-        `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
-      );
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
-    }
-  }
+      
+  //     return res.redirect(
+  //       `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
+  //     );
+  //   } catch (error: any) {
+  //     return res.status(500).json({ message: error.message });
+  //   }
+  // }
 
-  // ===================== SEND OTP =====================
+
   @Post('google/send-otp')
   async sendOtp(@Body() body: SendOtpDto) {
     const teacher = await this.teacherService.findByEmail(body.email);
@@ -171,14 +170,13 @@ export class TeacherController {
     return { message: 'OTP emailingizga yuborildi' };
   }
 
-  // ===================== VERIFY OTP =====================
   @Post('google/verify-otp')
   async verifyOtp(@Body() body: VerifyOtpDto) {
     const data = await this.redis.get(`otp:google:${body.email}`);
     if (!data) throw new BadRequestException('OTP muddati o‘tgan');
 
     const parsed = JSON.parse(data);
-    if (parsed.otp !== body.otp) throw new BadRequestException('OTP noto‘g‘ri');
+    if (parsed.otp !== body.otp) throw new BadRequestException('OTP notogri');
 
     const teacher = await this.teacherService.activateTeacher(
       body.email,
@@ -195,7 +193,29 @@ export class TeacherController {
     };
   }
 
-  // ===================== CRUD =====================
+    @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.TEACHER)
+  @Get('me')
+  getMe(@CurrentUser() user: IToken) {
+    return this.teacherService.findOneById(user.id, {
+      select: {
+        cardNumber: true,
+        description: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        experience: true,
+        hourPrice: true,
+        imageUrl: true,
+        level: true,
+        portfolioLink: true,
+        rating: true,
+        specification: true,
+      },
+    });
+  }
+
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
@@ -278,29 +298,6 @@ export class TeacherController {
   @Delete('hard-delete/:id')
   hardDelete(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.delete(id);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard, RolesGuard)
-  @AccessRoles(Roles.TEACHER)
-  @Get('me')
-  getMe(@CurrentUser() user: IToken) {
-    return this.teacherService.findOneById(user.id, {
-      select: {
-        cardNumber: true,
-        description: true,
-        email: true,
-        fullName: true,
-        phoneNumber: true,
-        experience: true,
-        hourPrice: true,
-        imageUrl: true,
-        level: true,
-        portfolioLink: true,
-        rating: true,
-        specification: true,
-      },
-    });
   }
 
   @ApiBearerAuth()
