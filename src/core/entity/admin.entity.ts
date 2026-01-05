@@ -10,7 +10,7 @@ export class Admin extends BaseEntity {
   @Column({ type: 'varchar' })
   password: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', unique : true })
   phoneNumber: string;
 
   @Column({ type: 'enum', enum: Roles, default: Roles.ADMIN })
