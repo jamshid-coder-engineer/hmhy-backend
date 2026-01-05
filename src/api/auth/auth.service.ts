@@ -141,4 +141,4 @@ export class AuthService {
     res.clearCookie(tokenKey);
     return successRes({ message: 'Successfully logged out' });
   }
-} // <--- Klass shu yerda yopilishi shart!
+} 

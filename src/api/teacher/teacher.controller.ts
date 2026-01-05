@@ -89,43 +89,43 @@ export class TeacherController {
     )(req, res);
   }
 
-  // @Get('google/callback')
-  // @UseGuards(AuthPassportGuard('google'))
-  // async googleCallback(@Req() req: Request, @Res() res: Response) {
-  //   const googleUser = req.user as any;
+  @Get('google/callback')
+  @UseGuards(AuthPassportGuard('google'))
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const googleUser = req.user as any;
 
-  //   try {
-  //     await this.teacherService.createIncompleteGoogleTeacher({
-  //       email: googleUser.email,
-  //       fullName: googleUser.fullName,
-  //       googleId: googleUser.googleId,
-  //       imageUrl: googleUser.imageUrl,
-  //       accessToken: googleUser.accessToken,
-  //       refreshToken: googleUser.refreshToken,
-  //     });
+    try {
+      await this.teacherService.createIncompleteGoogleTeacher({
+        email: googleUser.email,
+        fullName: googleUser.fullName,
+        googleId: googleUser.googleId,
+        imageUrl: googleUser.imageUrl,
+        accessToken: googleUser.accessToken,
+        refreshToken: googleUser.refreshToken,
+      });
 
-  //     const teacher = await this.teacherService.findCompleteGoogleTeacher(
-  //       googleUser.email,
-  //     );
+      const teacher = await this.teacherService.findCompleteGoogleTeacher(
+        googleUser.email,
+      );
 
-  //     if (teacher?.isComplete) {
-  //       const token = this.jwtService.sign({
-  //         id: teacher.id,
-  //         email: teacher.email,
-  //       });
-  //       return res.redirect(
-  //         `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
-  //       );
-  //     }
+      if (teacher?.isComplete) {
+        const token = this.jwtService.sign({
+          id: teacher.id,
+          email: teacher.email,
+        });
+        return res.redirect(
+          `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
+        );
+      }
 
       
-  //     return res.redirect(
-  //       `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
-  //     );
-  //   } catch (error: any) {
-  //     return res.status(500).json({ message: error.message });
-  //   }
-  // }
+      return res.redirect(
+        `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
+      );
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  }
 
 
   @Post('google/send-otp')
