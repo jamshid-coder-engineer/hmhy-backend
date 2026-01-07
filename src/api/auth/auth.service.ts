@@ -43,11 +43,11 @@ export class AuthService {
     if (!isMatchPass)
       throw new BadRequestException('Username or password incorrect');
 
-    const payload: IToken = { id: admin.id, role: admin.role as any };
+    const payload: IToken = { id: admin.id, role: admin.role as any};
     const accessToken = await this.token.accessToken(payload);
     const refreshToken = await this.token.refreshToken(payload);
     await this.token.writeCookie(res, 'token', refreshToken, 15);
-    return successRes({ accessToken });
+    return successRes({ accessToken, role: admin.role, });
   }
 
   async teacherSignIn(dto: TeacherSignInDto, res: Response) {

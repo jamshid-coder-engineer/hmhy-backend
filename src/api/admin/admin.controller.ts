@@ -59,6 +59,11 @@ export class AdminController {
     return this.adminService.createAdmin(createAdminDto);
   }
 
+  @Get('stats')
+  getStats() {
+    return this.adminService.getStats();
+  }
+
   @ApiOperation({ summary: 'Get all admins' })
   @ApiResponse({
     status: 200,
