@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -23,6 +24,7 @@ import { Teacher } from 'src/core/entity/teacher.entity';
 import type { TeacherPaymentRepository } from 'src/core/repository/teacherPayment.repository';
 import { TeacherPayment } from 'src/core/entity/teacherPayment.entity';
 import type { StudentRepository } from 'src/core/repository/student.repository';
+import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
 
 @Injectable()
 export class AdminService
@@ -143,4 +145,53 @@ export class AdminService
 
     return successRes(updatetAdmin);
   }
+
+async updateAdminMe(id: string, dto: UpdateAdminDto): Promise<ISuccess> {
+    const { phoneNumber, username } = dto;
+
+    const teacher = await this.adminRepo.findOne({ where: { id } });
+    if (!teacher) throw new NotFoundException('Teacher not found');
+
+    if (phoneNumber) {
+      const existsPhoneNumber = await this.adminRepo.findOne({
+        where: { phoneNumber },
+      });
+      if (existsPhoneNumber && existsPhoneNumber.id !== id)
+        throw new ConflictException('Phone number aready exists');
+    }
+
+    if (username) {
+      const existsUsername = await this.adminRepo.findOne({
+        where: { phoneNumber },
+      });
+      if (existsUsername && existsUsername.id !== id)
+        throw new ConflictException('Phone number aready exists');
+    }
+
+    const updatedTeacher = await this.adminRepo.update(id, dto);
+
+    return successRes(updatedTeacher);
+  }
+
+  async changePassword(id: string, dto: ChangePasswordDto): Promise<ISuccess> {
+    const { currentPassword, newPassword } = dto;
+    const admin = await this.adminRepo.findOne({ where: { id } });
+    if (!admin) throw new NotFoundException('Admin not found');
+
+    const isMatchPassword = await this.crypto.decrypt(
+      currentPassword,
+      admin.password,
+    );
+    if (!isMatchPassword)
+      throw new BadRequestException('Current password incorrect');
+
+    const hashedPassword = await this.crypto.encrypt(newPassword);
+
+    admin.password = hashedPassword;
+
+    await this.adminRepo.update(id, { password: hashedPassword });
+
+    return successRes({ message: 'Password successfully changed!' });
+  }
+
 }

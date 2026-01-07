@@ -23,6 +23,9 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { RolesGuard } from 'src/common/guard/role.guard';
 import { Roles } from 'src/common/enum/index.enum';
 import { AccessRoles } from 'src/common/decorator/roles.decorator';
+import { CurrentUser } from 'src/common/decorator/current-user.decorator';
+import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
+import type { IToken } from 'src/infrastructure/token/interface';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -95,6 +98,39 @@ export class AdminController {
       },
     });
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  @Patch('update')
+  updateMe(@CurrentUser() user: IToken, @Body() dto: UpdateAdminDto) {
+    return this.adminService.updateAdminMe(user.id, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  @Patch('changePassword')
+  changePassword(@CurrentUser() user: IToken, @Body() dto: ChangePasswordDto) {
+    return this.adminService.changePassword(user.id, dto);
+  }
+
+@Get('me')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  getMe(@CurrentUser() user: IToken) {
+    return this.adminService.findOneById(user.id, {
+      select: {
+        id: true,
+        phoneNumber: true,
+        username: true,
+        role: true,
+      },
+    });
+  }
+
 
   @ApiOperation({ summary: 'Get admin by ID' })
   @ApiResponse({

@@ -89,45 +89,56 @@ export class TeacherController {
     )(req, res);
   }
 
-  @Get('google/callback')
-  @UseGuards(AuthPassportGuard('google'))
-  async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const googleUser = req.user as any;
+@Get('google/callback')
+@UseGuards(AuthPassportGuard('google'))
+async googleCallback(@Req() req: Request, @Res() res: Response) {
+  const googleUser = req.user as any;
 
-    try {
-      await this.teacherService.createIncompleteGoogleTeacher({
-        email: googleUser.email,
-        fullName: googleUser.fullName,
-        googleId: googleUser.googleId,
-        imageUrl: googleUser.imageUrl,
-        accessToken: googleUser.accessToken,
-        refreshToken: googleUser.refreshToken,
+  console.log('📧 Google User Email:', googleUser.email)
+  console.log('🌐 FRONTEND_URL:', process.env.FRONTEND_URL) // ← Debug log
+
+  try {
+    await this.teacherService.createIncompleteGoogleTeacher({
+      email: googleUser.email,
+      fullName: googleUser.fullName,
+      googleId: googleUser.googleId,
+      imageUrl: googleUser.imageUrl,
+      accessToken: googleUser.accessToken,
+      refreshToken: googleUser.refreshToken,
+    });
+
+    const teacher = await this.teacherService.findCompleteGoogleTeacher(
+      googleUser.email,
+    );
+
+    // Teacher to'liq bo'lsa (phone va password bor)
+    if (teacher?.isComplete && teacher?.isActive) {
+      const token = this.jwtService.sign({
+        id: teacher.id,
+        email: teacher.email,
+        role: teacher.role,
       });
-
-      const teacher = await this.teacherService.findCompleteGoogleTeacher(
-        googleUser.email,
-      );
-
-      if (teacher?.isComplete) {
-        const token = this.jwtService.sign({
-          id: teacher.id,
-          email: teacher.email,
-        });
-        return res.redirect(
-          `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
-        );
-      }
-
       
-      return res.redirect(
-        `${config.SWAGGER_URL}#/Teacher%20-%20Google%20OAuth/TeacherController_sendOtp`,
-      );
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+      const redirectUrl = `${process.env.FRONTEND_URL}/teacher/dashboard?token=${token}`
+      console.log('✅ Redirecting to Dashboard:', redirectUrl)
+      
+      return res.redirect(redirectUrl);
     }
+
+    // Teacher incomplete - OTP page'ga
+    const redirectUrl = `${process.env.FRONTEND_URL}/teacher/otp-verify?email=${encodeURIComponent(googleUser.email)}`
+    console.log('✅ Redirecting to OTP:', redirectUrl)
+    
+    return res.redirect(redirectUrl);
+  } catch (error: any) {
+    console.error('❌ Google Callback Error:', error)
+    
+    const redirectUrl = `${process.env.FRONTEND_URL}/teacher/login?error=${encodeURIComponent(error.message)}`
+    console.log('❌ Redirecting to Login with error:', redirectUrl)
+    
+    return res.redirect(redirectUrl);
   }
-
-
+}
   @Post('google/send-otp')
   async sendOtp(@Body() body: SendOtpDto) {
     const teacher = await this.teacherService.findByEmail(body.email);

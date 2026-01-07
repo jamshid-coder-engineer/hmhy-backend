@@ -17,18 +17,14 @@ export class NotificationService implements OnModuleInit {
     @InjectRepository(Lesson)
     private readonly lessonRepo: Repository<Lesson>,
   ) {}
-
-  async onModuleInit() {
-    try {
-      if (!config.TELEGRAM_BOT_TOKEN) {
-        throw new Error('TELEGRAM_BOT_TOKEN topilmadi! .env faylni tekshiring.');
-      }
-      this.bot = new Telegraf(config.TELEGRAM_BOT_TOKEN);
-      this.logger.log('✅ Telegram bot initialized');
-    } catch (error) {
-      this.logger.error(' Telegram bot initialization error:', error.message);
-    }
+async onModuleInit() {
+  try {
+    await this.bot.telegram.getMe()
+    console.log('✅ Telegram bot initialized')
+  } catch (error) {
+    console.error('❌ Telegram bot init failed:', error.message)
   }
+}
 
 
   @Cron(CronExpression. EVERY_MINUTE)
