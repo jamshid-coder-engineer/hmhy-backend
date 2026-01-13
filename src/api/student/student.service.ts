@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Telegraf, Context, Markup } from 'telegraf';
 import { Student } from 'src/core/entity/student.entity';
@@ -10,11 +10,7 @@ import { UpdateStudentDto } from './dto/update-student.dto';
 import type { StudentRepository } from 'src/core/repository/student.repository';
 
 interface SessionData {
-  step:
-    | 'WAITING_FIRST_NAME'
-    | 'WAITING_LAST_NAME'
-    | 'WAITING_PHONE'
-    | 'COMPLETED';
+  step: 'WAITING_FIRST_NAME' | 'WAITING_LAST_NAME' | 'WAITING_PHONE' | 'COMPLETED';
   firstName?: string;
   lastName?: string;
 }
@@ -24,7 +20,7 @@ export class StudentService extends BaseService<
   CreateStudentDto,
   UpdateStudentDto,
   Student
-> {
+> implements OnModuleDestroy {
   private bot: Telegraf<Context>;
   private sessions: Map<number, SessionData> = new Map();
   private readonly logger = new Logger(StudentService.name);
@@ -34,6 +30,7 @@ export class StudentService extends BaseService<
     private readonly studentRepo: StudentRepository,
   ) {
     super(studentRepo);
+
     this.bot = new Telegraf(config.TELEGRAM_BOT_TOKEN);
     this.initializeBot();
   }
@@ -42,39 +39,44 @@ export class StudentService extends BaseService<
   private assertFrom(
     ctx: Context,
   ): asserts ctx is Context & { from: NonNullable<Context['from']> } {
-    if (!ctx.from) {
-      throw new Error("Foydalanuvchi ma'lumotlari topilmadi");
-    }
+    if (!ctx.from) throw new Error("Foydalanuvchi ma'lumotlari topilmadi");
   }
 
   private initializeBot() {
+    // /start buyrug'i
     this.bot.start(async (ctx) => {
       try {
         this.assertFrom(ctx);
-
         const tgId = ctx.from.id.toString();
-        const tgUsername = ctx.from.username || null;
 
-        const existingStudent = await this.studentRepo.findOne({
-          where: { tgId },
-        });
-
+        const existingStudent = await this.studentRepo.findOne({ where: { tgId } });
         if (existingStudent) {
           await ctx.reply(
             `Siz allaqachon ro'yxatdan o'tgansiz!\n\n` +
-              `👤 Ism: ${existingStudent.firstName}\n` +
-              `👤 Familiya: ${existingStudent.lastName}\n` +
-              `📱 Telefon: ${existingStudent.phoneNumber}`,
+            `👤 Ism: ${existingStudent.firstName}\n` +
+            `👤 Familiya: ${existingStudent.lastName}\n` +
+            `📱 Telefon: ${existingStudent.phoneNumber}`,
           );
           return;
         }
 
         this.sessions.set(ctx.from.id, { step: 'WAITING_FIRST_NAME' });
 
+
+await ctx.reply(
+  "🎓 Web App'ni ochish:",
+  Markup.inlineKeyboard([
+    Markup.button.webApp(
+      "📚 Darslarni ko'rish",
+      `${config.FRONTEND_URL}/student/login`
+    ),
+  ])
+);
+
         await ctx.reply(
           "👋 Assalomu aleykum! O'quv platformasiga xush kelibsiz.\n\n" +
-            "📝 Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni kiriting.\n\n" +
-            '👤 Ismingizni kiriting:',
+          "📝 Ro'yxatdan o'tish uchun ma'lumotlarni kiriting.\n\n" +
+          "👤 Ismingizni kiriting:"
         );
       } catch (error) {
         this.logger.error('Start command error:', error);
@@ -82,19 +84,15 @@ export class StudentService extends BaseService<
       }
     });
 
-    // Text messages
+    // Text xabarlari handler
     this.bot.on('text', async (ctx) => {
       try {
         this.assertFrom(ctx);
-
         const session = this.sessions.get(ctx.from.id);
         if (!session) {
-          await ctx.reply(
-            "Ro'yxatdan o'tish uchun /start buyrug'ini yuboring.",
-          );
+          await ctx.reply("Ro'yxatdan o'tish uchun /start buyrug'ini yuboring.");
           return;
         }
-
         await this.handleRegistrationStep(ctx, session);
       } catch (error) {
         this.logger.error('Text handler error:', error);
@@ -102,12 +100,12 @@ export class StudentService extends BaseService<
       }
     });
 
-    // Contact messages
+    // Contact xabarlari handler
     this.bot.on('contact', async (ctx) => {
       try {
         this.assertFrom(ctx);
-
         const session = this.sessions.get(ctx.from.id);
+
         if (!session || session.step !== 'WAITING_PHONE') {
           await ctx.reply("Iltimos, avval /start buyrug'ini yuboring.");
           return;
@@ -126,13 +124,13 @@ export class StudentService extends BaseService<
       }
     });
 
-    // Bot error catcher
+    // Xatoliklarni tutuvchi
     this.bot.catch((err, ctx) => {
       this.logger.error(`Bot error for ${ctx.from?.id}:`, err);
       ctx.reply("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.");
     });
 
-    // Launch bot
+    // Botni ishga tushurish
     this.bot.launch().then(() => {
       this.logger.log('Student registration bot started successfully');
     });
@@ -142,6 +140,7 @@ export class StudentService extends BaseService<
     process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
   }
 
+  // Ro'yxatdan o'tish qadamlarini ishlash
   private async handleRegistrationStep(ctx: Context, session: SessionData) {
     const text = (ctx.message as any).text?.trim();
     if (!text) {
@@ -152,9 +151,7 @@ export class StudentService extends BaseService<
     switch (session.step) {
       case 'WAITING_FIRST_NAME':
         if (text.length < 2 || text.length > 50) {
-          await ctx.reply(
-            "Ism 2-50 belgi orasida bo'lishi kerak. Qaytadan kiriting:",
-          );
+          await ctx.reply("Ism 2-50 belgi orasida bo'lishi kerak. Qaytadan kiriting:");
           return;
         }
         session.firstName = text;
@@ -165,18 +162,14 @@ export class StudentService extends BaseService<
 
       case 'WAITING_LAST_NAME':
         if (text.length < 2 || text.length > 50) {
-          await ctx.reply(
-            "Familiya 2-50 belgi orasida bo'lishi kerak. Qaytadan kiriting:",
-          );
+          await ctx.reply("Familiya 2-50 belgi orasida bo'lishi kerak. Qaytadan kiriting:");
           return;
         }
         session.lastName = text;
         session.step = 'WAITING_PHONE';
         this.sessions.set(ctx.from!.id, session);
         await ctx.reply(
-          '✅ Familiya qabul qilindi!\n\n' +
-            '📱 Endi telefon raqamingizni yuboring.\n\n' +
-            'Quyidagi tugmani bosing yoki +998XXXXXXXXX formatida kiriting:',
+          '✅ Familiya qabul qilindi!\n\n📱 Endi telefon raqamingizni yuboring.',
           Markup.keyboard([
             Markup.button.contactRequest('📱 Telefon raqamni ulashish'),
           ]).resize(),
@@ -190,8 +183,7 @@ export class StudentService extends BaseService<
 
         if (!phoneRegex.test(phoneNumber)) {
           await ctx.reply(
-            "❌ Noto'g'ri telefon raqam formati!\n\n" +
-              'Iltimos, +998XXXXXXXXX formatida kiriting yoki pastdagi tugmani bosing.',
+            "❌ Noto'g'ri telefon raqam formati!\nIltimos, +998XXXXXXXXX formatida kiriting yoki pastdagi tugmani bosing.",
             Markup.keyboard([
               Markup.button.contactRequest('📱 Telefon raqamni ulashish'),
             ]).resize(),
@@ -204,62 +196,63 @@ export class StudentService extends BaseService<
     }
   }
 
-  private async completeRegistration(
-    ctx: Context,
-    session: SessionData,
-    phoneNumber: string,
-  ) {
-    try {
-      this.assertFrom(ctx);
+  // Ro'yxatdan o'tishni yakunlash
+  private async completeRegistration(ctx: Context, session: SessionData, phoneNumber: string) {
+  try {
+    this.assertFrom(ctx);
 
-      const existingPhone = await this.studentRepo.findOne({
-        where: { phoneNumber },
-      });
-      if (existingPhone) {
-        await ctx.reply(
-          "❌ Bu telefon raqam allaqachon ro'yxatdan o'tgan!\n\n" +
-            "Boshqa raqam kiriting yoki admin bilan bog'laning.",
-          Markup.removeKeyboard(),
-        );
-        return;
-      }
-
-      const student = this.studentRepo.create({
-        firstName: session.firstName,
-        lastName: session.lastName,
-        phoneNumber,
-        tgId: ctx.from.id.toString(),
-        tgUsername: ctx.from.username,
-        role: Roles.STUDENT,
-        isBlocked: false,
-      });
-
-      await this.studentRepo.save(student);
-
-      this.sessions.delete(ctx.from.id);
-
+    const existingPhone = await this.studentRepo.findOne({ where: { phoneNumber } });
+    if (existingPhone) {
       await ctx.reply(
-        "✅ Ro'yxatdan o'tish muvaffaqiyatli yakunlandi!\n\n" +
-          "📋 Sizning ma'lumotlaringiz:\n" +
-          `👤 Ism: ${student.firstName}\n` +
-          `👤 Familiya: ${student.lastName}\n` +
-          `📱 Telefon: ${student.phoneNumber}\n` +
-          `🆔 Telegram: @${student.tgUsername || "username yo'q"}\n\n` +
-          "🎓 Endi siz darslarni ko'rishingiz va booking qilishingiz mumkin!",
+        "❌ Bu telefon raqam allaqachon ro'yxatdan o'tgan!\nBoshqa raqam kiriting yoki admin bilan bog'laning.",
         Markup.removeKeyboard(),
       );
-
-      this.logger.log(
-        `New student registered: ${student.id} - ${student.firstName} ${student.lastName}`,
-      );
-    } catch (error) {
-      this.logger.error('Error completing registration:', error);
-      await ctx.reply(
-        "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.\n\nMuammo davom etsa, admin bilan bog'laning.",
-        Markup.removeKeyboard(),
-      );
+      return;
     }
+
+    const student = this.studentRepo.create({
+      firstName: session.firstName,
+      lastName: session.lastName,
+      phoneNumber,
+      tgId: ctx.from.id.toString(),
+      tgUsername: ctx.from.username,
+      role: Roles.STUDENT,
+      isBlocked: false,
+    });
+
+    await this.studentRepo.save(student);
+    this.sessions.delete(ctx.from.id);
+
+    await ctx.reply(
+      "✅ Ro'yxatdan o'tish muvaffaqiyatli yakunlandi!\n\n" +
+      `👤 Ism: ${student.firstName}\n` +
+      `👤 Familiya: ${student.lastName}\n` +
+      `📱 Telefon: ${student.phoneNumber}\n` +
+      `🆔 Telegram: @${student.tgUsername || "username yo'q"}\n\n` +
+      "🎓 Endi siz darslarni ko'rishingiz va booking qilishingiz mumkin!",
+      Markup.removeKeyboard(),
+    );
+
+    // ✅ Ro'yxatdan o'tgandan KEYIN Web App tugmasini yuboring
+    await ctx.reply(
+      "🎓 Platformaga kirish uchun quyidagi tugmani bosing:",
+      Markup.inlineKeyboard([
+        Markup.button.webApp(
+          "📚 Darslarni ko'rish",
+          `${config.FRONTEND_URL}/student/login`
+        ),
+      ])
+    );
+
+    this.logger.log(`New student registered: ${student.id} - ${student.firstName} ${student.lastName}`);
+  } catch (error) {
+    this.logger.error('Error completing registration:', error);
+    await ctx.reply(
+      "❌ Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.\nMuammo davom etsa, admin bilan bog'laning.",
+      Markup.removeKeyboard(),
+    );
   }
+}
 
   async onModuleDestroy() {
     await this.bot.stop();

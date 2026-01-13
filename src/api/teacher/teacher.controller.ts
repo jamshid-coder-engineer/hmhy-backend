@@ -12,6 +12,8 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { TeacherService } from './teacher.service';
 import { JwtService } from '@nestjs/jwt';
@@ -35,6 +37,9 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { generateOtp } from 'src/common/util/otp-generator';
 import passport from 'passport';
 import { MailerService } from '@nestjs-modules/mailer';
+import { LoginTeacherDto } from './dto/login-teacher.dto';
+import { tr } from '@faker-js/faker';
+import { TeacherFilterDto } from './dto/teacher-filter.dto';
 
 @ApiTags('Teacher - Google OAuth')
 @Controller('teacher')
@@ -44,101 +49,96 @@ export class TeacherController {
     private jwtService: JwtService,
     private readonly mailService: MailerService,
     @InjectRedis() private readonly redis: Redis,
-  ) {}
+  ) { }
 
 
-  // Google OAuth endpoints
+
   @Get('google')
   @ApiOperation({ summary: 'Google OAuth login' })
-  googleLogin(@Req() req, @Res() res) {
-    // Custom authenticate with prompt=consent to force refresh token
-    passport.authenticate(
-      'google',
-      {
-        scope: [
-          'email',
-          'profile',
-          'https://www.googleapis.com/auth/calendar',
-          'https://www.googleapis.com/auth/calendar.events',
-        ],
-        accessType: 'offline',
-        prompt: 'consent',
-      } as passport.AuthenticateOptions,
-      (err, user, info) => {
-        if (err) {
-          return res
-            .status(500)
-            .json({ error: 'Authentication failed', details: err });
-        }
-        if (!user) {
-          return res.status(401).json({ error: 'No user found', info });
-        }
+  @UseGuards(AuthPassportGuard('google'))
+  googleLogin() {
 
-        console.log(user);
-
-        // Manually log in the user
-        req.logIn(user, (loginErr) => {
-          if (loginErr) {
-            return res
-              .status(500)
-              .json({ error: 'Login failed', details: loginErr });
-          }
-          return res.redirect('/dashboard'); // yoki kerakli joyga yo'naltiring
-        });
-      },
-    )(req, res);
   }
+  @Get('google/callback')
+  @UseGuards(AuthPassportGuard('google'))
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const googleUser = req.user as any;
 
-@Get('google/callback')
-@UseGuards(AuthPassportGuard('google'))
-async googleCallback(@Req() req: Request, @Res() res: Response) {
-  const googleUser = req.user as any;
+    console.log('📧 Google User Email:', googleUser.email)
+    console.log('🌐 FRONTEND_URL:', process.env.FRONTEND_URL)
 
-  console.log('📧 Google User Email:', googleUser.email)
-  console.log('🌐 FRONTEND_URL:', process.env.FRONTEND_URL) // ← Debug log
-
-  try {
-    await this.teacherService.createIncompleteGoogleTeacher({
-      email: googleUser.email,
-      fullName: googleUser.fullName,
-      googleId: googleUser.googleId,
-      imageUrl: googleUser.imageUrl,
-      accessToken: googleUser.accessToken,
-      refreshToken: googleUser.refreshToken,
-    });
-
-    const teacher = await this.teacherService.findCompleteGoogleTeacher(
-      googleUser.email,
-    );
-
-    // Teacher to'liq bo'lsa (phone va password bor)
-    if (teacher?.isComplete && teacher?.isActive) {
-      const token = this.jwtService.sign({
-        id: teacher.id,
-        email: teacher.email,
-        role: teacher.role,
+    try {
+      await this.teacherService.createIncompleteGoogleTeacher({
+        email: googleUser.email,
+        fullName: googleUser.fullName,
+        googleId: googleUser.googleId,
+        imageUrl: googleUser.imageUrl,
+        accessToken: googleUser.accessToken,
+        refreshToken: googleUser.refreshToken,
       });
-      
-      const redirectUrl = `${process.env.FRONTEND_URL}/teacher/dashboard?token=${token}`
-      console.log('✅ Redirecting to Dashboard:', redirectUrl)
-      
+
+      const teacher = await this.teacherService.findCompleteGoogleTeacher(
+        googleUser.email,
+      );
+
+      if (teacher?.isComplete && teacher?.isActive) {
+        const token = this.jwtService.sign({
+          id: teacher.id,
+          email: teacher.email,
+          role: teacher.role,
+        });
+
+        const redirectUrl = `${process.env.FRONTEND_URL}/teacher/dashboard?token=${token}`
+        console.log('✅ Redirecting to Dashboard:', redirectUrl)
+
+        return res.redirect(redirectUrl);
+      }
+
+      const redirectUrl = `${process.env.FRONTEND_URL}/teacher/otp-verify?email=${encodeURIComponent(googleUser.email)}`
+      console.log('✅ Redirecting to OTP:', redirectUrl)
+
+      return res.redirect(redirectUrl);
+    } catch (error: any) {
+      console.error('❌ Google Callback Error:', error)
+
+      const redirectUrl = `${process.env.FRONTEND_URL}/teacher/login?error=${encodeURIComponent(error.message)}`
+      console.log('❌ Redirecting to Login with error:', redirectUrl)
+
       return res.redirect(redirectUrl);
     }
-
-    // Teacher incomplete - OTP page'ga
-    const redirectUrl = `${process.env.FRONTEND_URL}/teacher/otp-verify?email=${encodeURIComponent(googleUser.email)}`
-    console.log('✅ Redirecting to OTP:', redirectUrl)
-    
-    return res.redirect(redirectUrl);
-  } catch (error: any) {
-    console.error('❌ Google Callback Error:', error)
-    
-    const redirectUrl = `${process.env.FRONTEND_URL}/teacher/login?error=${encodeURIComponent(error.message)}`
-    console.log('❌ Redirecting to Login with error:', redirectUrl)
-    
-    return res.redirect(redirectUrl);
   }
-}
+
+  @Post('login')
+  async login(@Body() dto: LoginTeacherDto) {
+    const teacher = await this.teacherService.validateTeacher(
+      dto.email,
+      dto.password,
+    );
+
+    if (teacher.role !== Roles.TEACHER) {
+      throw new UnauthorizedException('You are not a teacher');
+    }
+
+    if (!teacher.isComplete) {
+      throw new UnauthorizedException('Profile is not completed');
+    }
+
+    if (!teacher.isActive) {
+      throw new UnauthorizedException('Waiting for admin approval');
+    }
+
+    const token = this.jwtService.sign({
+      id: teacher.id,
+      email: teacher.email,
+      role: teacher.role,
+    });
+
+    return {
+      token,
+      role: teacher.role,
+    };
+  }
+
   @Post('google/send-otp')
   async sendOtp(@Body() body: SendOtpDto) {
     const teacher = await this.teacherService.findByEmail(body.email);
@@ -159,14 +159,13 @@ async googleCallback(@Req() req: Request, @Res() res: Response) {
         password: body.password,
       }),
       'EX',
-      300, // 5 daqiqa amal qiladi
+      300,
     );
 
-    // 👇 TO'G'IRLANGAN QISM:
     await this.mailService.sendMail({
-      to: body.email, // Kimga yuborilishi
-      subject: 'Royxatdan otish uchun tasdiqlash kodi', // Xat mavzusi
-      // Agar template ishlatmasangiz, text yoki html dan foydalaning:
+      to: body.email,
+      subject: 'Royxatdan otish uchun tasdiqlash kodi',
+
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee;">
           <h2>Tasdiqlash kodi</h2>
@@ -177,14 +176,13 @@ async googleCallback(@Req() req: Request, @Res() res: Response) {
       `,
     });
 
-    // Xavfsizlik yuzasidan javobda otp ni qaytarmaslik tavsiya etiladi (faqat test uchun qoldiring)
     return { message: 'OTP emailingizga yuborildi' };
   }
 
   @Post('google/verify-otp')
   async verifyOtp(@Body() body: VerifyOtpDto) {
     const data = await this.redis.get(`otp:google:${body.email}`);
-    if (!data) throw new BadRequestException('OTP muddati o‘tgan');
+    if (!data) throw new BadRequestException('OTP muddati otgan');
 
     const parsed = JSON.parse(data);
     if (parsed.otp !== body.otp) throw new BadRequestException('OTP notogri');
@@ -204,28 +202,15 @@ async googleCallback(@Req() req: Request, @Res() res: Response) {
     };
   }
 
-    @ApiBearerAuth()
+  @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
-  @AccessRoles(Roles.TEACHER)
-  @Get('me')
-  getMe(@CurrentUser() user: IToken) {
-    return this.teacherService.findOneById(user.id, {
-      select: {
-        cardNumber: true,
-        description: true,
-        email: true,
-        fullName: true,
-        phoneNumber: true,
-        experience: true,
-        hourPrice: true,
-        imageUrl: true,
-        level: true,
-        portfolioLink: true,
-        rating: true,
-        specification: true,
-      },
-    });
+  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  @Get()
+  findAll(@Query() query: TeacherFilterDto) {
+    return this.teacherService.findFilteredTeachers(query);
   }
+
+
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
@@ -239,29 +224,31 @@ async googleCallback(@Req() req: Request, @Res() res: Response) {
     return this.teacherService.softDelete(id, dto, admin.id);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard, RolesGuard)
-  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
-  @Get()
-  findAll() {
-    return this.teacherService.findAll({
-      where: { isActive: true },
-      select: {
-        cardNumber: true,
-        description: true,
-        email: true,
-        fullName: true,
-        phoneNumber: true,
-        experience: true,
-        hourPrice: true,
-        imageUrl: true,
-        level: true,
-        portfolioLink: true,
-        rating: true,
-        specification: true,
-      },
-    });
-  }
+  // @ApiBearerAuth()
+  // @UseGuards(AuthGuard, RolesGuard)
+  // @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  // @Get()
+  // findAll() {
+  //   return this.teacherService.findAll({
+  //     where: { isDelete: false },
+  //     select: {
+  //       id: true,
+  //       cardNumber: true,
+  //       description: true,
+  //       email: true,
+  //       isActive: true,
+  //       fullName: true,
+  //       phoneNumber: true,
+  //       experience: true,
+  //       hourPrice: true,
+  //       imageUrl: true,
+  //       level: true,
+  //       portfolioLink: true,
+  //       rating: true,
+  //       specification: true,
+  //     },
+  //   });
+  // }
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
@@ -295,7 +282,7 @@ async googleCallback(@Req() req: Request, @Res() res: Response) {
     return this.teacherService.restoreTeacher(id);
   }
 
- @ApiBearerAuth()
+  @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
   @Get(':id')
@@ -309,6 +296,28 @@ async googleCallback(@Req() req: Request, @Res() res: Response) {
   @Delete('hard-delete/:id')
   hardDelete(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.delete(id);
+  }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.TEACHER)
+  @Get('me')
+  getMe(@CurrentUser() user: IToken) {
+    return this.teacherService.findOneById(user.id, {
+      select: {
+        cardNumber: true,
+        description: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        experience: true,
+        hourPrice: true,
+        imageUrl: true,
+        level: true,
+        portfolioLink: true,
+        rating: true,
+        specification: true,
+      },
+    });
   }
 
   @ApiBearerAuth()

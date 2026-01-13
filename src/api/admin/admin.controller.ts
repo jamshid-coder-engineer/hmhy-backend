@@ -8,6 +8,10 @@ import {
   Delete,
   UseGuards,
   ParseUUIDPipe,
+  NotFoundException,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -23,9 +27,13 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { RolesGuard } from 'src/common/guard/role.guard';
 import { Roles } from 'src/common/enum/index.enum';
 import { AccessRoles } from 'src/common/decorator/roles.decorator';
-import { CurrentUser } from 'src/common/decorator/current-user.decorator';
-import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
 import type { IToken } from 'src/infrastructure/token/interface';
+import { CurrentUser } from 'src/common/decorator/current-user.decorator';
+import { Not } from 'typeorm';
+import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
+import { UpdateTeacherDto } from '../teacher/dto/update-teacher.dto';
+import { stringToBytes } from 'node_modules/uuid/dist/v35';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -43,7 +51,7 @@ export class AdminController {
         status: 'success',
         data: {
           id: '1',
-          username: 'jamshid',
+          username: 'suhrob',
           phoneNumber: '+998901234567',
           role: 'ADMIN',
         },
@@ -62,11 +70,6 @@ export class AdminController {
     return this.adminService.createAdmin(createAdminDto);
   }
 
-  @Get('stats')
-  getStats() {
-    return this.adminService.getStats();
-  }
-
   @ApiOperation({ summary: 'Get all admins' })
   @ApiResponse({
     status: 200,
@@ -77,7 +80,7 @@ export class AdminController {
         data: [
           {
             id: '1',
-            username: 'jamshid',
+            username: 'suhrob',
             phoneNumber: '+998901234567',
             role: 'ADMIN',
           },
@@ -88,14 +91,17 @@ export class AdminController {
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN)
   @Get()
-  findAll() {
-    return this.adminService.findAll({
+  findAll(@Query() query: PaginationDto) {
+    return this.adminService.findAllWithPagination({
+      page: query.page,
+      limit: query.limit,
       select: {
         id: true,
-        username: true,
         phoneNumber: true,
+        username: true,
         role: true,
       },
+      relations: [],
     });
   }
 
@@ -116,7 +122,7 @@ export class AdminController {
     return this.adminService.changePassword(user.id, dto);
   }
 
-@Get('me')
+  @Get('me')
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
@@ -128,9 +134,16 @@ export class AdminController {
         username: true,
         role: true,
       },
+      relations: [],
     });
   }
 
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  @Get('stats')
+  getStats() {
+    return this.adminService.getStats();
+  }
 
   @ApiOperation({ summary: 'Get admin by ID' })
   @ApiResponse({
@@ -141,7 +154,7 @@ export class AdminController {
         status: 'success',
         data: {
           id: '1',
-          username: 'jamshid',
+          username: 'suhrob',
           phoneNumber: '+998901234567',
           role: 'ADMIN',
         },
@@ -157,7 +170,17 @@ export class AdminController {
   @AccessRoles(Roles.SUPER_ADMIN, 'ID')
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.findOneById(id);
+    return this.adminService.findOneById(id, {
+      select: {
+        id: true,
+        phoneNumber: true,
+        username: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      relations: [],
+    });
   }
 
   @ApiOperation({ summary: 'Update admin by ID' })
@@ -170,8 +193,8 @@ export class AdminController {
         status: 'success',
         data: {
           id: '1',
-          username: 'jamshid_updated',
-          phoneNumber: '+99816161616',
+          username: 'suhrob_updated',
+          phoneNumber: '+998901234567',
           role: 'ADMIN',
         },
       },
@@ -185,7 +208,10 @@ export class AdminController {
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN, 'ID')
   @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateAdminDto: UpdateAdminDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateAdminDto: UpdateAdminDto,
+  ) {
     return this.adminService.updateAdmin(updateAdminDto, id);
   }
 
@@ -205,7 +231,13 @@ export class AdminController {
   @Delete(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.SUPER_ADMIN)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.delete(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.adminService.findOneById(id, {
+      where: { role: Not(Roles.SUPER_ADMIN) },
+      relations: [],
+    });
+    if (data) return this.adminService.delete(id);
+
+    throw new NotFoundException('Admin not found');
   }
 }

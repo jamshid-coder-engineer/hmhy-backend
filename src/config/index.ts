@@ -72,22 +72,21 @@ export const config: ConfigType = {
     GOOGLE_CLIENT_SECRET: String(process.env.GOOGLE_CLIENT_SECRET),
   },
 
-  FRONTEND_URL: String(process.env.FRONTEND_URL),
+  FRONTEND_URL: String(process.env.FRONTEND_URL || 'http://localhost:5173'), // Fallback qo'shildi
   SWAGGER_URL: String(process.env.SWAGGER_URL),
+  BACKEND_URL: String(process.env.BACKEND_URL),
 
   REDIS_HOST: String(process.env.REDIS_HOST),
   REDIS_PORT: Number(process.env.REDIS_PORT),
   REDIS_PASSWORD: String(process.env.REDIS_PASSWORD),
 
-  BACKEND_URL: String(process.env.BACKEND_URL),
+  TELEGRAM_BOT_TOKEN: String(process.env.TELEGRAM_BOT_TOKEN),
 
   MAIL: {
     MAIL_HOST: String(process.env.MAIL_HOST),
     MAIL_PASS: String(process.env.MAIL_PASS),
     MAIL_PORT: Number(process.env.MAIL_PORT),
-    MAIL_SECURE: String(process.env.NODE_ENV) === 'development' ? false : true,
+    MAIL_SECURE: String(process.env.NODE_ENV) === 'production', // development'da false
     MAIL_USER: String(process.env.MAIL_USER),
   },
-
-  TELEGRAM_BOT_TOKEN: String(process.env.TELEGRAM_BOT_TOKEN),
 };

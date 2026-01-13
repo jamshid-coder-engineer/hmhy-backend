@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
@@ -17,6 +18,8 @@ import { ISuccess } from 'src/infrastructure/pagination/successResponse';
 import { successRes } from 'src/infrastructure/response/success.response';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { TeacherFilterDto } from './dto/teacher-filter.dto';
+import { Between, ILike } from 'typeorm';
 
 @Injectable()
 export class TeacherService extends BaseService<
@@ -67,6 +70,25 @@ export class TeacherService extends BaseService<
     return await this.teacherRepo.findOne({ where: { phoneNumber } });
   }
 
+  async validateTeacher(email: string, password: string) {
+    const teacher = await this.teacherRepo.findOne({
+      where: { email },
+    })
+
+    if (!teacher) {
+      throw new UnauthorizedException('Teacher not found')
+    }
+
+    const isMatch = await this.crypto.compare(password, teacher.password);
+
+    if (!isMatch) {
+      throw new UnauthorizedException('Invalid credentials')
+    }
+
+    return teacher
+  }
+
+
   async saveOtpToRedis(phoneNumber: string, data: any) {
     const key = `otp:google:${phoneNumber}`;
     try {
@@ -112,6 +134,58 @@ export class TeacherService extends BaseService<
     // teacher obyekti ichida tokenlar borligi sababli, save() ularni o'chirib yubormaydi
     return await this.teacherRepo.save(teacher);
   }
+
+  async findFilteredTeachers(query: TeacherFilterDto) {
+    const {
+      search, level, minRating, maxRating,
+      sortBy, sortOrder, page, limit
+    } = query;
+
+    const where: any = { isActive: true };
+
+    // 1. Qidiruv (Full Name yoki Email bo'yicha)
+    if (search) {
+      where.fullName = ILike(`%${search}%`);
+    }
+
+    // 2. Level bo'yicha filtr
+    if (level) {
+      where.level = level;
+    }
+
+    // 3. Rating diapazoni (0 dan 5 gacha)
+    if (minRating !== undefined && maxRating !== undefined) {
+      where.rating = Between(minRating, maxRating);
+    }
+    
+
+    const options: any = {
+      where,
+      take: limit,
+      skip: page, // RepositoryPager ichida (page-1)*take qilingani uchun shunchaki sonni beramiz
+      order: {
+        [sortBy || 'fullName']: sortOrder || 'ASC',
+      },
+      select: {
+        id: true,
+        cardNumber: true,
+        description: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        experience: true,
+        hourPrice: true,
+        imageUrl: true,
+        level: true,
+        portfolioLink: true,
+        rating: true,
+        specification: true,
+      },
+    };
+
+    return this.findAllWithPagination(options);
+  }
+
 
   async updateTeacher(id: string, dto: UpdateTeacherDto): Promise<ISuccess> {
     const { phoneNumber, cardNumber } = dto;

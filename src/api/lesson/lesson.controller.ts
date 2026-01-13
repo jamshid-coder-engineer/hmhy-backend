@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -27,11 +28,12 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { AccessRoles } from 'src/common/decorator/roles.decorator';
 import { LessonStatus, Rating, Roles } from 'src/common/enum/index.enum';
 import { LessonComplete } from './dto/lesson-complete.dto';
+import { LessonFiltersDto } from './dto/lesson-filter.dto';
 @ApiTags('Lessons')
 @ApiBearerAuth()
 @Controller('lessons')
 export class LessonController {
-  constructor(private readonly lessonService: LessonService) {}
+  constructor(private readonly lessonService: LessonService) { }
 
   @Get()
   @UseGuards(AuthGuard, RolesGuard)
@@ -42,7 +44,7 @@ export class LessonController {
   })
   findAll() {
     return this.lessonService.findAll({});
-  } 
+  }
 
   @Get('for-teacher')
   @UseGuards(AuthGuard, RolesGuard)
@@ -136,10 +138,21 @@ export class LessonController {
   getAvailableLessons() {
     return this.lessonService.getAvailableLessons();
   }
-  
+
+  @Get(':id/lessons')
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
+  async getTeacherLessonsAdmin(
+    @Param('id', ParseUUIDPipe) teacherId: string,
+    @Query() query: LessonFiltersDto
+  ) {
+    return this.lessonService.getTeacherLessonsForAdmin(teacherId, query);
+  }
+
+
 
   @Get('my-lessons')
-   @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @AccessRoles(Roles.TEACHER)
   @ApiOperation({
     summary: 'Mening darslarim (Student)',

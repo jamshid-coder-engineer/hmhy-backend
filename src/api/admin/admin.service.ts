@@ -16,27 +16,28 @@ import { CryptoService } from 'src/infrastructure/crypto/crypto.service';
 import { config } from 'src/config';
 import { successRes } from 'src/infrastructure/response/success.response';
 import { ISuccess } from 'src/infrastructure/pagination/successResponse';
+import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
+import type { StudentRepository } from 'src/core/repository/student.repository';
 import type { LessonRepository } from 'src/core/repository/lesson.repository';
 import type { TeacherRepository } from 'src/core/repository/teacher.repository';
+import type { TeacherPaymentRepository } from 'src/core/repository/teacherPayment.repository';
 import { Student } from 'src/core/entity/student.entity';
 import { Lesson } from 'src/core/entity/lesson.entity';
 import { Teacher } from 'src/core/entity/teacher.entity';
-import type { TeacherPaymentRepository } from 'src/core/repository/teacherPayment.repository';
 import { TeacherPayment } from 'src/core/entity/teacherPayment.entity';
-import type { StudentRepository } from 'src/core/repository/student.repository';
-import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
 
 @Injectable()
 export class AdminService
   extends BaseService<CreateAdminDto, UpdateAdminDto, Admin>
-  implements OnModuleInit {
+  implements OnModuleInit
+{
   constructor(
     @InjectRepository(Admin) private readonly adminRepo: AdminRepository,
     @InjectRepository(Student) private readonly studentRepo: StudentRepository,
     @InjectRepository(Lesson) private readonly lessonRepo: LessonRepository,
     @InjectRepository(Teacher) private readonly teacherRepo: TeacherRepository,
-    @InjectRepository(TeacherPayment) private readonly paymentRepo: TeacherPaymentRepository,
-
+    @InjectRepository(TeacherPayment)
+    private readonly paymentRepo: TeacherPaymentRepository,
     private readonly crypto: CryptoService,
   ) {
     super(adminRepo);
@@ -60,32 +61,7 @@ export class AdminService
       });
 
       await this.adminRepo.save(superAdmin);
-      console.log(`Super Admin created`);
     }
-  }
-
-  async getStats() {
-    const [totalStudents, totalTeachers, totalLessons] = await Promise.all([
-      this.studentRepo.count(),
-      this.teacherRepo.count({ where: { isDelete: false } }),
-      this.lessonRepo.count(),
-    ]);
-
-    // Umumiy tushumni hisoblash
-    const payments = await this.paymentRepo.find();
-    const totalRevenue = payments.reduce((sum, p) => sum + (p.platformAmount || 0), 0);
-
-    const datas = {
-      totalStudents,
-      totalTeachers,
-      totalLessons,
-      totalRevenue,
-      charts: {
-        lessonsByStatus: [],
-      }
-    };
-
-    return successRes(datas)
   }
 
   async createAdmin(dto: CreateAdminDto): Promise<ISuccess> {
@@ -124,7 +100,7 @@ export class AdminService
       const existsUsername = await this.adminRepo.findOne({
         where: { username },
       });
-      if (existsUsername && existsUsername.id === id)
+      if (existsUsername && existsUsername.id !== id)
         throw new ConflictException('Username already exists');
     }
 
@@ -146,7 +122,7 @@ export class AdminService
     return successRes(updatetAdmin);
   }
 
-async updateAdminMe(id: string, dto: UpdateAdminDto): Promise<ISuccess> {
+  async updateAdminMe(id: string, dto: UpdateAdminDto): Promise<ISuccess> {
     const { phoneNumber, username } = dto;
 
     const teacher = await this.adminRepo.findOne({ where: { id } });
@@ -194,4 +170,31 @@ async updateAdminMe(id: string, dto: UpdateAdminDto): Promise<ISuccess> {
     return successRes({ message: 'Password successfully changed!' });
   }
 
+  async getStats() {
+    const [totalStudents, totalTeachers, totalLessons] = await Promise.all([
+      this.studentRepo.count(),
+      this.teacherRepo.count({
+        where: { isDelete: false, isActive: true },
+      }),
+      this.lessonRepo.count(),
+    ]);
+
+    const payments = await this.paymentRepo.find();
+    const totalRevenue = payments.reduce(
+      (sum, p) => sum + (p.platformAmount || 0),
+      0,
+    );
+
+    const datas = {
+      totalStudents,
+      totalTeachers,
+      totalLessons,
+      totalRevenue,
+      charts: {
+        lessonsByStatus: [],
+      },
+    };
+
+    return successRes(datas);
+  }
 }

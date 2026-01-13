@@ -47,7 +47,11 @@ export class AuthService {
     const accessToken = await this.token.accessToken(payload);
     const refreshToken = await this.token.refreshToken(payload);
     await this.token.writeCookie(res, 'token', refreshToken, 15);
-    return successRes({ accessToken, role: admin.role, });
+    return successRes({
+  accessToken,
+  role: admin.role,
+  username: admin.username,
+})
   }
 
   async teacherSignIn(dto: TeacherSignInDto, res: Response) {
@@ -69,41 +73,63 @@ export class AuthService {
   }
 
   async telegramLogin(initData: string) {
-    const urlParams = new URLSearchParams(initData);
-    const hash = urlParams.get('hash');
-    const userStr = urlParams.get('user');
+  const urlParams = new URLSearchParams(initData);
+  const hash = urlParams.get('hash');
+  const userStr = urlParams.get('user');
 
-    if (!hash || !userStr) throw new BadRequestException('Invalid initData');
+  if (!hash || !userStr) throw new BadRequestException('Invalid initData');
 
-    urlParams.delete('hash');
-    const dataCheckString = Array.from(urlParams.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([key, val]) => `${key}=${val}`)
-      .join('\n');
+  urlParams.delete('hash');
+  const dataCheckString = Array.from(urlParams.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, val]) => `${key}=${val}`)
+    .join('\n');
 
-    const secretKey = crypto
-      .createHmac('sha256', 'WebAppData')
-      .update(process.env.TELEGRAM_BOT_TOKEN || '')
-      .digest();
+  const secretKey = crypto
+    .createHmac('sha256', 'WebAppData')
+    .update(config.TELEGRAM_BOT_TOKEN || '')
+    .digest();
 
-    const hmac = crypto
-      .createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
+  const hmac = crypto
+    .createHmac('sha256', secretKey)
+    .update(dataCheckString)
+    .digest('hex');
 
-    if (hmac !== hash) throw new UnauthorizedException('Invalid hash');
+  if (hmac !== hash) throw new UnauthorizedException('Invalid hash');
 
-    const tgUser = JSON.parse(userStr);
-    const telegramId = String(tgUser.id);
-    const student = await this.studentRepo.findOne({
-      where: { telegramId } as any,
-    });
+  const tgUser = JSON.parse(userStr);
+  const tgId = String(tgUser.id);
+  
+  // tgId bilan student topish (telegramId emas, tgId!)
+  const student = await this.studentRepo.findOne({
+    where: { tgId } as any,
+  });
 
-    if (!student) throw new UnauthorizedException('Student not registered');
+  if (!student) throw new UnauthorizedException('Student not registered. Please use /start command in bot first.');
 
-    const payload: IToken = { id: student.id, role: 'STUDENT' as any };
-    return successRes({ accessToken: await this.token.accessToken(payload) });
+  // Student bloklangan bo'lsa
+  if (student.isBlocked) {
+    throw new ForbiddenException(`Your account is blocked. Reason: ${student.blockedReason || 'Contact admin'}`);
   }
+
+  const payload: IToken = { 
+    id: student.id, 
+    role: Roles.STUDENT  // String emas, enum
+  };
+  
+  const accessToken = await this.token.accessToken(payload);
+  
+  return successRes({ 
+    accessToken,
+    student: {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      phoneNumber: student.phoneNumber,
+      tgUsername: student.tgUsername
+    }
+  });
+}
 
   async devLogin(studentId: string, res: Response) {
     const student = await this.studentRepo.findOne({
