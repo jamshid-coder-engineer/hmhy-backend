@@ -10,7 +10,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID: config.GOOGLE_AUTH.GOOGLE_CLIENT_ID,
       clientSecret: config.GOOGLE_AUTH.GOOGLE_CLIENT_SECRET,
       callbackURL: config.GOOGLE_AUTH.GOOGLE_CALLBACK_URL,
-      scope: ['email', 'profile', 'https://www.googleapis.com/auth/calendar'],
+      scope: [
+  'email',
+  'profile',
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/calendar.events',
+],
+
       accessType: 'offline',
       prompt: 'consent', // Har doim refresh token olish uchun
     } as any);

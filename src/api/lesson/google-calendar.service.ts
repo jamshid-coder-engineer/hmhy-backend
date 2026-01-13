@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { ref } from 'process';
 import { config } from 'src/config';
 import { Teacher } from 'src/core/entity/teacher.entity';
 
@@ -14,7 +15,6 @@ export class GoogleCalendarService {
       access_token: teacher.googleAccessToken,
       refresh_token: teacher.googleRefreshToken,
     });
-
     return google.calendar({
       version: 'v3',
       auth: oauth2Client,

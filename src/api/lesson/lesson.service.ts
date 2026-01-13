@@ -25,6 +25,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { LessonFiltersDto } from './dto/lesson-filter.dto';
+import { ISuccess } from 'src/infrastructure/pagination/successResponse';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -49,7 +50,7 @@ export class LessonService extends BaseService<
     super(lessonRepo);
   }
 
-  async createLesson(dto: CreateLessonDto, teacherId: string): Promise<Lesson> {
+  async createLesson(dto: CreateLessonDto, teacherId: string): Promise<ISuccess> {
     const startTime = dayjs
       .tz(dto.startTime.replace('Z', ''), 'Asia/Tashkent')
       .toDate();
@@ -74,8 +75,9 @@ export class LessonService extends BaseService<
       where: { id: teacherId },
     });
     if (!teacher) throw new NotFoundException(`O'qituvchi topilmadi`);
+    console.log(teacher);
 
-    if (!teacher.googleAccessToken || !teacher.googleRefreshToken) {
+    if (!teacher.googleAccessToken) {
       throw new BadRequestException("Google Calendar ulangan bo'lishi shart");
     }
 
@@ -129,7 +131,12 @@ export class LessonService extends BaseService<
         googleEventId: event.data.id ?? undefined,
       });
 
-      return await this.lessonRepo.save(lesson);
+      const newLess = await this.lessonRepo.save(lesson);
+
+      return successRes({
+        message: 'Dars muvaffaqiyatli yaratildi',
+        data: newLess,
+      });
     } catch (error: any) {
       throw new BadRequestException(`Xatolik: ${error.message}`);
     }

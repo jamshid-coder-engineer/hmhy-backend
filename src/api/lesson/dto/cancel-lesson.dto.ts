@@ -10,7 +10,7 @@ import { LessonStatus } from 'src/common/enum/index.enum';
 export class CancelLessonDto {
   @IsEnum(LessonStatus)
   @IsNotEmpty()
-  status: LessonStatus.CANCELED;
+  status: LessonStatus.CANCELLED;
 
   @IsString()
   @IsOptional()

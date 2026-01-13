@@ -16,8 +16,7 @@ export enum LessonStatus {
   AVAILABLE = 'AVAILABLE',
   BOOKED = 'BOOKED',
   COMPLETED = 'COMPLETED',
-
-  CANCELED = 'CANCELED',
+  CANCELLED = 'CANCELED',
 }
 
 export enum Rating {

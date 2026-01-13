@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Telegraf, Context, Markup } from 'telegraf';
 import { Student } from 'src/core/entity/student.entity';
@@ -8,6 +8,7 @@ import { BaseService } from 'src/infrastructure/base/base-service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import type { StudentRepository } from 'src/core/repository/student.repository';
+import { Not } from 'typeorm';
 
 interface SessionData {
   step: 'WAITING_FIRST_NAME' | 'WAITING_LAST_NAME' | 'WAITING_PHONE' | 'COMPLETED';
@@ -35,7 +36,6 @@ export class StudentService extends BaseService<
     this.initializeBot();
   }
 
-  /** Type guard: ctx.from doimo mavjudligini ta'minlaydi */
   private assertFrom(
     ctx: Context,
   ): asserts ctx is Context & { from: NonNullable<Context['from']> } {
@@ -60,18 +60,7 @@ export class StudentService extends BaseService<
           return;
         }
 
-        this.sessions.set(ctx.from.id, { step: 'WAITING_FIRST_NAME' });
-
-
-await ctx.reply(
-  "🎓 Web App'ni ochish:",
-  Markup.inlineKeyboard([
-    Markup.button.webApp(
-      "📚 Darslarni ko'rish",
-      `${config.FRONTEND_URL}/student/login`
-    ),
-  ])
-);
+        this.sessions.set(ctx.from.id, { step: 'WAITING_FIRST_NAME' })
 
         await ctx.reply(
           "👋 Assalomu aleykum! O'quv platformasiga xush kelibsiz.\n\n" +
@@ -190,8 +179,7 @@ await ctx.reply(
           );
           return;
         }
-
-        await this.completeRegistration(ctx, session, phoneNumber);
+ await this.completeRegistration(ctx, session, phoneNumber);
         break;
     }
   }
@@ -258,4 +246,80 @@ await ctx.reply(
     await this.bot.stop();
     this.logger.log('Student registration bot stopped');
   }
+
+  async getStats() {
+    const [total, active, blocked] = await Promise.all([
+      this.studentRepo.count(),
+      this.studentRepo.count({ where: { isBlocked: false } }),
+      this.studentRepo.count({ where: { isBlocked: true } }),
+    ]);
+
+    return {
+      totalStudents: total,
+      activeStudents: active,
+      blockedStudents: blocked,
+    };
+  }
+  // student.service.ts
+
+  async toggleStudentBlock(id: string, reason?: string) {
+    const student = await this.studentRepo.findOne({ where: { id } });
+
+    if (!student) {
+      throw new NotFoundException('Student not found');
+    }
+
+    if (!student.isBlocked) {
+      // Bloklash holati
+      student.isBlocked = true;
+      student.blockedReason = reason || "Sabab ko'rsatilmadi";
+    } else {
+      // Blokdan chiqarish holati
+      student.isBlocked = false;
+      student.blockedReason = ''; // Type 'null' assignable bo'lishi uchun Entity'da nullable: true bo'lishi shart
+    }
+
+    return await this.studentRepo.save(student);
+  }
+
+  async updateStudent(
+    id: string,
+    updateStudentDto: UpdateStudentDto,
+  ): Promise<Student> {
+    const { phoneNumber, email } = updateStudentDto;
+
+    // 1. Student mavjudligini tekshirish
+    const student = await this.studentRepo.findOne({ where: { id } });
+    if (!student) {
+      throw new NotFoundException(`Student with ID ${id} not found`);
+    }
+
+    // 2. Phone Number Unique tekshiruvi
+    if (phoneNumber) {
+      const existingPhone = await this.studentRepo.findOne({
+        where: { phoneNumber, id: Not(id) }, // O'zidan boshqa hamma bilan tekshiradi
+      });
+      if (existingPhone) {
+        throw new ConflictException(
+          'Bu telefon raqami allaqachon ro‘yxatdan o‘tgan',
+        );
+      }
+    }
+
+    // 3. Email Unique tekshiruvi (agar entity-da email bo'lsa)
+    if (email) {
+      const existingEmail = await this.studentRepo.findOne({
+        where: { email, id: Not(id) },
+      });
+      if (existingEmail) {
+        throw new ConflictException('Bu email manzili allaqachon band');
+      }
+    }
+
+    // 4. Ma'lumotlarni yangilash
+    Object.assign(student, updateStudentDto);
+
+    return await this.studentRepo.save(student);
+  }
 }
+

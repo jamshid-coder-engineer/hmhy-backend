@@ -1,4 +1,6 @@
 import {
+  IsEmail,
+  isEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -33,4 +35,9 @@ export class CreateStudentDto {
   @IsOptional()
   @MaxLength(50)
   tgUsername?: string;
+
+  @IsString()
+  @IsEmail()
+  @IsOptional()
+  email?: string;
 }

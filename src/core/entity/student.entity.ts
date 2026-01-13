@@ -43,6 +43,9 @@ export class Student extends BaseEntity {
   @Column({ type: 'uuid', nullable: true })
   notification: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  email: string;
+
   @OneToMany(() => Lesson, (lesson) => lesson.student)
   lessons: Lesson[];
 
@@ -51,6 +54,5 @@ export class Student extends BaseEntity {
 
   @OneToMany(() => LessonHistory, (history) => history.student)
   history: LessonHistory[];
-  email: any;
   length: number;
 }

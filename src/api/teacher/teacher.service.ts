@@ -141,7 +141,7 @@ export class TeacherService extends BaseService<
       sortBy, sortOrder, page, limit
     } = query;
 
-    const where: any = { isActive: true };
+    const where: any = {};
 
     // 1. Qidiruv (Full Name yoki Email bo'yicha)
     if (search) {
@@ -157,7 +157,7 @@ export class TeacherService extends BaseService<
     if (minRating !== undefined && maxRating !== undefined) {
       where.rating = Between(minRating, maxRating);
     }
-    
+
 
     const options: any = {
       where,
@@ -175,6 +175,7 @@ export class TeacherService extends BaseService<
         phoneNumber: true,
         experience: true,
         hourPrice: true,
+        isActive: true,
         imageUrl: true,
         level: true,
         portfolioLink: true,
