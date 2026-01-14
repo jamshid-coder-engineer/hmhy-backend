@@ -59,6 +59,10 @@ export class TeacherController {
   googleLogin() {
 
   }
+
+
+
+
   @Get('google/callback')
   @UseGuards(AuthPassportGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
@@ -88,8 +92,9 @@ export class TeacherController {
           role: teacher.role,
         });
 
-        const redirectUrl = `${process.env.FRONTEND_URL}/teacher/dashboard?token=${token}`
-        console.log('✅ Redirecting to Dashboard:', redirectUrl)
+        const redirectUrl =
+          `${process.env.FRONTEND_URL}/teacher/lesson?token=${encodeURIComponent(token)}`
+
 
         return res.redirect(redirectUrl);
       }
@@ -224,31 +229,7 @@ export class TeacherController {
     return this.teacherService.softDelete(id, dto, admin.id);
   }
 
-  // @ApiBearerAuth()
-  // @UseGuards(AuthGuard, RolesGuard)
-  // @AccessRoles(Roles.SUPER_ADMIN, Roles.ADMIN)
-  // @Get()
-  // findAll() {
-  //   return this.teacherService.findAll({
-  //     where: { isDelete: false },
-  //     select: {
-  //       id: true,
-  //       cardNumber: true,
-  //       description: true,
-  //       email: true,
-  //       isActive: true,
-  //       fullName: true,
-  //       phoneNumber: true,
-  //       experience: true,
-  //       hourPrice: true,
-  //       imageUrl: true,
-  //       level: true,
-  //       portfolioLink: true,
-  //       rating: true,
-  //       specification: true,
-  //     },
-  //   });
-  // }
+ 
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
@@ -257,6 +238,30 @@ export class TeacherController {
   findAllApplications() {
     return this.teacherService.findAll({ where: { isActive: false } });
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.TEACHER)
+  @Get('me')
+  getMe(@CurrentUser() user: IToken) {
+    return this.teacherService.findOneById(user.id, {
+      select: {
+        cardNumber: true,
+        description: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        experience: true,
+        hourPrice: true,
+        imageUrl: true,
+        level: true,
+        portfolioLink: true,
+        rating: true,
+        specification: true,
+      },
+    });
+  }
+
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)
@@ -296,28 +301,6 @@ export class TeacherController {
   @Delete('hard-delete/:id')
   hardDelete(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.delete(id);
-  }
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard, RolesGuard)
-  @AccessRoles(Roles.TEACHER)
-  @Get('me')
-  getMe(@CurrentUser() user: IToken) {
-    return this.teacherService.findOneById(user.id, {
-      select: {
-        cardNumber: true,
-        description: true,
-        email: true,
-        fullName: true,
-        phoneNumber: true,
-        experience: true,
-        hourPrice: true,
-        imageUrl: true,
-        level: true,
-        portfolioLink: true,
-        rating: true,
-        specification: true,
-      },
-    });
   }
 
   @ApiBearerAuth()

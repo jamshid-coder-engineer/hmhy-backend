@@ -53,9 +53,14 @@ export class LessonController {
     status: 200,
     description: "Bo'sh darslar ro'yxati",
   })
-  findAllForTeacher(@CurrentUser() user: IToken) {
-    return this.lessonService.findAll({ where: { teacherId: user.id } });
-  }
+  findAllForTeacher(
+  @CurrentUser() user: IToken,
+  @Query('date') date?: string,
+) {
+  console.log("DATE_FROM_QUERY:", date);
+  return this.lessonService.getTeacherLessonsByDate(user.id, date);
+}
+
 
 
   @Post()
@@ -137,6 +142,16 @@ export class LessonController {
   })
   getAvailableLessons() {
     return this.lessonService.getAvailableLessons();
+  }
+
+
+
+
+  @Get('stats')
+  @UseGuards(AuthGuard, RolesGuard)
+  @AccessRoles(Roles.TEACHER)
+  lessonStats(@CurrentUser() user: IToken) {
+    return this.lessonService.lessonStats(user.id);
   }
 
   @Get(':id/lessons')

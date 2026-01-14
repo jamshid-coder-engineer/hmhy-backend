@@ -80,6 +80,9 @@ export class LessonService extends BaseService<
     if (!teacher.googleAccessToken) {
       throw new BadRequestException("Google Calendar ulangan bo'lishi shart");
     }
+console.log("access?", !!teacher.googleAccessToken);
+console.log("refresh?", !!teacher.googleRefreshToken);
+console.log("access sample:", teacher.googleAccessToken?.slice(0, 15));
 
     const conflictingLesson = await this.lessonRepo.findOne({
       where: {
@@ -141,6 +144,41 @@ export class LessonService extends BaseService<
       throw new BadRequestException(`Xatolik: ${error.message}`);
     }
   }
+
+
+async getTeacherLessonsByDate(teacherId: string, date?: string) {
+  const qb = this.lessonRepo
+    .createQueryBuilder('lesson')
+    .where('lesson.teacherId = :teacherId', { teacherId });
+
+  if (date) {
+    const startOfDay = dayjs
+      .tz(date, 'Asia/Tashkent')
+      .startOf('day')
+      .toDate();
+
+    const endOfDay = dayjs
+      .tz(date, 'Asia/Tashkent')
+      .endOf('day')
+      .toDate();
+
+    qb.andWhere(
+      'lesson.startTime BETWEEN :start AND :end',
+      { start: startOfDay, end: endOfDay }
+    );
+  }
+
+  qb.orderBy('lesson.startTime', 'ASC');
+
+  const lessons = await qb.getMany();
+
+  return {
+    statusCode: 200,
+    data: lessons,
+  };
+}
+
+
   async lessonComplete(
     teacherId: string,
     dto: LessonComplete,
@@ -231,6 +269,27 @@ export class LessonService extends BaseService<
       pageSize: limitNumber,
       from: (pageNumber - 1) * limitNumber + 1,
       to: Math.min(pageNumber * limitNumber, total),
+    };
+  }
+
+  async lessonStats(id: string) {
+    const teacher = await this.teacherRepo.findOne({ where: { id } });
+    if (!teacher) throw new NotFoundException('Teacher not found');
+
+    const totalLessons = await this.lessonRepo.count({
+      where: { teacherId: id },
+    });
+    const bookedLessons = await this.lessonRepo.count({
+      where: { teacherId: id, status: LessonStatus.BOOKED },
+    });
+
+    const totalPages = Math.ceil(totalLessons / 10) || 0;
+
+    return {
+      totalLessons,
+      bookedLessons,
+      totalPages,
+      currentPage: 1,
     };
   }
 
