@@ -100,21 +100,19 @@ export class AuthService {
   const tgUser = JSON.parse(userStr);
   const tgId = String(tgUser.id);
   
-  // tgId bilan student topish (telegramId emas, tgId!)
   const student = await this.studentRepo.findOne({
     where: { tgId } as any,
   });
 
   if (!student) throw new UnauthorizedException('Student not registered. Please use /start command in bot first.');
 
-  // Student bloklangan bo'lsa
   if (student.isBlocked) {
     throw new ForbiddenException(`Your account is blocked. Reason: ${student.blockedReason || 'Contact admin'}`);
   }
 
   const payload: IToken = { 
     id: student.id, 
-    role: Roles.STUDENT  // String emas, enum
+    role: Roles.STUDENT  
   };
   
   const accessToken = await this.token.accessToken(payload);

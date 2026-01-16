@@ -43,12 +43,16 @@ export class Application {
   }
 
   private setupCors(app: NestExpressApplication): void {
-    app.enableCors({
-      origin: true,
-      methods: this.CORS_METHODS,
-      credentials: true,
-    });
-  }
+  app.enableCors({
+    origin: [
+      'http://localhost:5173',
+      'https://hmhy-frontend.netlify.app',
+    ],
+    credentials: true,
+    methods: this.CORS_METHODS,
+  });
+}
+
 
   private setupGlobalPrefix(app: NestExpressApplication): void {
     app.setGlobalPrefix(this.API_PREFIX);
