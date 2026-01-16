@@ -83,7 +83,6 @@ export class LessonController {
     @Body() createLessonDto: CreateLessonDto,
     @CurrentUser() user: IToken,
   ) {
-    // console.log(user);
     return this.lessonService.createLesson(createLessonDto, user.id);
   }
 

@@ -43,15 +43,30 @@ export class Application {
   }
 
   private setupCors(app: NestExpressApplication): void {
-  app.enableCors({
-    origin: [
+    const allowedOrigins = [
       'http://localhost:5173',
       'https://hmhy-frontend.netlify.app',
-    ],
-    credentials: true,
-    methods: this.CORS_METHODS,
-  });
-}
+    ];
+
+    const isNgrokOrigin = (origin: string): boolean =>
+      /^https:\/\/.*\.ngrok-free\.dev$/.test(origin);
+
+    app.enableCors({
+      origin: (origin, callback) => {
+        if (!origin) {
+          return callback(null, true);
+        }
+
+        if (allowedOrigins.includes(origin) || isNgrokOrigin(origin)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error(`CORS blocked origin: ${origin}`), false);
+      },
+      credentials: true,
+      methods: this.CORS_METHODS,
+    });
+  }
 
 
   private setupGlobalPrefix(app: NestExpressApplication): void {

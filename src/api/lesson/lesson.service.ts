@@ -96,32 +96,27 @@ console.log("access sample:", teacher.googleAccessToken?.slice(0, 15));
     }
 
     try {
-      const calendar = this.calendarService.getClient(teacher);
+  const calendar = await this.calendarService.getClient(teacher);
 
-      const event = await calendar.events.insert({
-        calendarId: 'primary',
-        conferenceDataVersion: 1,
-        requestBody: {
-          summary: `Dars: ${dto.name}`,
-          description: 'Dars uchun Google Meet havolasi',
-          start: {
-            dateTime: startTime.toISOString(),
-            timeZone: 'Asia/Tashkent',
-          },
-          end: {
-            dateTime: endTime.toISOString(),
-            timeZone: 'Asia/Tashkent',
-          },
-          conferenceData: {
-            createRequest: {
-              requestId: `lesson-${Date.now()}`,
-              conferenceSolutionKey: { type: 'hangoutsMeet' },
-            },
-          },
+  // agar getClient accessToken yangilagan bo‘lsa, DB ga saqlab qo‘yamiz
+  await this.teacherRepo.save(teacher);
+
+  const event = await calendar.events.insert({
+    calendarId: 'primary',
+    conferenceDataVersion: 1,
+    requestBody: {
+      summary: `Dars: ${dto.name}`,
+      description: 'Dars uchun Google Meet havolasi',
+      start: { dateTime: startTime.toISOString(), timeZone: 'Asia/Tashkent' },
+      end: { dateTime: endTime.toISOString(), timeZone: 'Asia/Tashkent' },
+      conferenceData: {
+        createRequest: {
+          requestId: `lesson-${Date.now()}`,
+          conferenceSolutionKey: { type: 'hangoutsMeet' },
         },
-      });
-
-
+      },
+    },
+  });
       const lesson = this.lessonRepo.create({
         name: dto.name,
         startTime: startTime,
@@ -141,8 +136,8 @@ console.log("access sample:", teacher.googleAccessToken?.slice(0, 15));
         data: newLess,
       });
     } catch (error: any) {
-      throw new BadRequestException(`Xatolik: ${error.message}`);
-    }
+  throw new BadRequestException(`Xatolik: ${error.message}`);
+}
   }
 
 
@@ -168,7 +163,7 @@ async getTeacherLessonsByDate(teacherId: string, date?: string) {
     );
   }
 
-  qb.orderBy('lesson.startTime', 'ASC');
+  qb.orderBy('lesson.startTime', 'DESC');
 
   const lessons = await qb.getMany();
 
@@ -332,7 +327,7 @@ async getTeacherLessonsByDate(teacherId: string, date?: string) {
 
     try {
       if (lesson.googleEventId && lesson.teacher) {
-        const calendar = this.calendarService.getClient(lesson.teacher);
+        const calendar = await this.calendarService.getClient(lesson.teacher);
 
         await calendar.events.patch({
           calendarId: 'primary',
@@ -382,7 +377,7 @@ async getTeacherLessonsByDate(teacherId: string, date?: string) {
 
       if (lesson.googleEventId && lesson.teacher) {
         try {
-          const calendar = this.calendarService.getClient(lesson.teacher);
+          const calendar = await this.calendarService.getClient(lesson.teacher);
 
           await calendar.events.patch({
             calendarId: 'primary',
@@ -429,7 +424,7 @@ async getTeacherLessonsByDate(teacherId: string, date?: string) {
 
     if (lesson.googleEventId && lesson.teacher) {
       try {
-        const calendar = this.calendarService.getClient(lesson.teacher);
+        const calendar = await this.calendarService.getClient(lesson.teacher);
         await calendar.events.delete({
           calendarId: 'primary',
           eventId: lesson.googleEventId,
