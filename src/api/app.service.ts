@@ -140,11 +140,19 @@ export class Application {
     SwaggerModule.setup(this.SWAGGER_PATH, app, document);
   }
 
-  private async startServer(app: NestExpressApplication): Promise<void> {
-    await app.listen(config.PORT, () => {
-      console.log(`Swagger docs: ${config.SWAGGER_URL}`);
-      // console.log(`Server running on: ${config.BACKEND_URL}`);
-    });
+  // private async startServer(app: NestExpressApplication): Promise<void> {
+  //   await app.listen(config.PORT, () => {
+  //     console.log(`Swagger docs: ${config.SWAGGER_URL}`);
+  //     // console.log(`Server running on: ${config.BACKEND_URL}`);
+  //   });
 
-  }
+  // }
+  private async startServer(app: NestExpressApplication): Promise<void> {
+  const port = Number(process.env.PORT) || 5000;
+
+  await app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port: ${port}`);
+  });
+}
+
 }
