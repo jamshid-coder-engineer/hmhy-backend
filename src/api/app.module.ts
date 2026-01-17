@@ -30,11 +30,16 @@ import { TransactionModule } from './transaction/transaction.module';
     //         : false,
     //   }),
     // }),
-TypeOrmModule.forRoot({
-  type: 'postgres',
-  url: process.env.DB_URL,
-  ssl: { rejectUnauthorized: false },
+TypeOrmModule.forRootAsync({
+  useFactory: () => ({
+    type: 'postgres',
+    url: process.env.DB_URL,
+    ssl: { rejectUnauthorized: false },
+    autoLoadEntities: true,
+    synchronize: true,
+  }),
 }),
+
 
     JwtModule.register({
       global: true,
