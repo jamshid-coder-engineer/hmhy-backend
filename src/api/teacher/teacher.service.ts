@@ -13,11 +13,11 @@ import { BaseService } from 'src/infrastructure/base/base-service';
 import { Teacher } from 'src/core/entity/teacher.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CryptoService } from 'src/infrastructure/crypto/crypto.service';
-import Redis from 'ioredis';
+// import Redis from 'ioredis';
 import { ISuccess } from 'src/infrastructure/pagination/successResponse';
 import { successRes } from 'src/infrastructure/response/success.response';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { InjectRedis } from '@nestjs-modules/ioredis';
+// import { InjectRedis } from '@nestjs-modules/ioredis';
 import { TeacherFilterDto } from './dto/teacher-filter.dto';
 import { Between, ILike } from 'typeorm';
 
@@ -29,7 +29,7 @@ export class TeacherService extends BaseService<
 > {
   constructor(
     @InjectRepository(Teacher) private readonly teacherRepo: TeacherRepository,
-    @InjectRedis() private readonly redis: Redis,
+    // @InjectRedis() private readonly redis: Redis,
     private readonly crypto: CryptoService,
   ) {
     super(teacherRepo);
@@ -90,7 +90,7 @@ export class TeacherService extends BaseService<
   async saveOtpToRedis(phoneNumber: string, data: any) {
     const key = `otp:google:${phoneNumber}`;
     try {
-      await this.redis.set(key, JSON.stringify(data), 'EX', 120);
+      // await this.redis.set(key, JSON.stringify(data), 'EX', 120);
     } catch (error) {
       throw new InternalServerErrorException('Redis-ga saqlashda xatolik');
     }
@@ -98,13 +98,13 @@ export class TeacherService extends BaseService<
 
   async getOtpFromRedis(phoneNumber: string) {
     const key = `otp:google:${phoneNumber}`;
-    const data = await this.redis.get(key);
-    return data ? JSON.parse(data) : null;
+    // const data = await this.redis.get(key);
+    // return data ? JSON.parse(data) : null;
   }
 
   async deleteOtpFromRedis(phoneNumber: string) {
     const key = `otp:google:${phoneNumber}`;
-    await this.redis.del(key);
+    // await this.redis.del(key);
   }
 
   async findCompleteGoogleTeacher(email: string) {
