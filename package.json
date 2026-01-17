@@ -6,11 +6,11 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
-    "start": "node dist/main",
-    "start:dev": "nest start --watch",
-    "start:prod": "node --max-old-space-size=450 dist/main"
-  },
+  "build": "nest build",
+  "start": "node dist/main",
+  "start:dev": "nest start --watch",
+  "start:prod": "node --max-old-space-size=400 dist/main"
+},
   "dependencies": {
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs-modules/mailer": "^2.0.2",
