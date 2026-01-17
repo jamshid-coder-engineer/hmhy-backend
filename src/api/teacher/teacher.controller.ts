@@ -100,14 +100,14 @@ export class TeacherController {
       }
 
       const redirectUrl = `${process.env.FRONTEND_URL}/teacher/otp-verify?email=${encodeURIComponent(googleUser.email)}`
-      console.log('✅ Redirecting to OTP:', redirectUrl)
+      console.log('Redirecting to OTP:', redirectUrl)
 
       return res.redirect(redirectUrl);
     } catch (error: any) {
-      console.error('❌ Google Callback Error:', error)
+      console.error('Google Callback Error:', error)
 
       const redirectUrl = `${process.env.FRONTEND_URL}/teacher/login?error=${encodeURIComponent(error.message)}`
-      console.log('❌ Redirecting to Login with error:', redirectUrl)
+      console.log('Redirecting to Login with error:', redirectUrl)
 
       return res.redirect(redirectUrl);
     }

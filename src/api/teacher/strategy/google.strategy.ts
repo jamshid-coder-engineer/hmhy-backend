@@ -17,7 +17,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         'https://www.googleapis.com/auth/calendar.events',
       ],
       accessType: 'offline',
-      prompt: 'consent', // Har doim refresh token olish uchun
+      prompt: 'consent', 
     } as any);
   }
 

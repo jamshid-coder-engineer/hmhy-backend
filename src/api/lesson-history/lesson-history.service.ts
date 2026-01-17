@@ -31,9 +31,7 @@ export class LessonHistoryService extends BaseService<
     return successRes(histories);
   }
 
-  /**
-   * Lesson'ning barcha studentlar history'sini olish
-   */
+ 
   async getLessonHistory(lessonId: string): Promise<ISuccess> {
     const histories = await this.lessonHistoryRepository.find({
       where: { lessonId },
@@ -44,9 +42,6 @@ export class LessonHistoryService extends BaseService<
     return successRes(histories);
   }
 
-  /**
-   * Date range bo'yicha history olish
-   */
   async getHistoryByDateRange(
     studentId: string,
     startDate: Date,
@@ -67,7 +62,5 @@ export class LessonHistoryService extends BaseService<
     return successRes(histories);
   }
 
-  /**
-   * Barcha history'larni olish (relations bilan)
-   */
+ 
 }

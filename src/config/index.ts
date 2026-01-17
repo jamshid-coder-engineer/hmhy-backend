@@ -86,7 +86,7 @@ export const config: ConfigType = {
     MAIL_HOST: String(process.env.MAIL_HOST),
     MAIL_PASS: String(process.env.MAIL_PASS),
     MAIL_PORT: Number(process.env.MAIL_PORT),
-    MAIL_SECURE: String(process.env.NODE_ENV) === 'production', // development'da false
+    MAIL_SECURE: String(process.env.NODE_ENV) === 'production', // development'da false boladi
     MAIL_USER: String(process.env.MAIL_USER),
   },
 };

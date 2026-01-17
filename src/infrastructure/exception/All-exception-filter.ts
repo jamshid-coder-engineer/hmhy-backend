@@ -89,7 +89,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         );
       } else {
         this.logger.error(
-          `❌ SERVER ERROR | Country: ${country} | ${JSON.stringify(errorLog)}`,
+          `SERVER ERROR | Country: ${country} | ${JSON.stringify(errorLog)}`,
           (exception as Error).stack || null,
         );
       }

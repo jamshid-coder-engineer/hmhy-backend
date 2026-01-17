@@ -47,18 +47,16 @@ export class TeacherService extends BaseService<
         fullName: data.fullName,
         googleId: data.googleId,
         imageUrl: data.imageUrl,
-        googleAccessToken: data.accessToken, // <--- To'g'ri mapping
-        googleRefreshToken: data.refreshToken, // <--- To'g'ri mapping
+        googleAccessToken: data.accessToken, 
+        googleRefreshToken: data.refreshToken, 
         isComplete: false,
         isActive: false,
       });
     } else {
-      // Mavjud teacher uchun yangilash qismi sizda deyarli to'g'ri edi
       teacher.googleAccessToken = data.accessToken;
       if (data.refreshToken) {
         teacher.googleRefreshToken = data.refreshToken;
       }
-      // Agar rasm yoki ism o'zgargan bo'lsa ularni ham yangilab qo'yish mumkin
       teacher.imageUrl = data.imageUrl;
       teacher.fullName = data.fullName;
     }
@@ -118,20 +116,16 @@ export class TeacherService extends BaseService<
   }
 
   async activateTeacher(email: string, phoneNumber: string, password: string) {
-    // Bazadan barcha ma'lumotlarni, shu jumladan tokenlarni ham olib kelamiz
     const teacher = await this.teacherRepo.findOne({ where: { email } });
 
     if (!teacher) throw new NotFoundException('Foydalanuvchi topilmadi');
 
     const hashedPassword = await this.crypto.encrypt(password);
 
-    // Faqat kerakli maydonlarni yangilaymiz
-    teacher.phoneNumber = phoneNumber;
     teacher.password = hashedPassword;
     teacher.isComplete = true;
     teacher.isActive = false;
 
-    // teacher obyekti ichida tokenlar borligi sababli, save() ularni o'chirib yubormaydi
     return await this.teacherRepo.save(teacher);
   }
 
@@ -143,17 +137,14 @@ export class TeacherService extends BaseService<
 
     const where: any = {};
 
-    // 1. Qidiruv (Full Name yoki Email bo'yicha)
     if (search) {
       where.fullName = ILike(`%${search}%`);
     }
 
-    // 2. Level bo'yicha filtr
     if (level) {
       where.level = level;
     }
 
-    // 3. Rating diapazoni (0 dan 5 gacha)
     if (minRating !== undefined && maxRating !== undefined) {
       where.rating = Between(minRating, maxRating);
     }
@@ -162,7 +153,7 @@ export class TeacherService extends BaseService<
     const options: any = {
       where,
       take: limit,
-      skip: page, // RepositoryPager ichida (page-1)*take qilingani uchun shunchaki sonni beramiz
+      skip: page, 
       order: {
         [sortBy || 'fullName']: sortOrder || 'ASC',
       },

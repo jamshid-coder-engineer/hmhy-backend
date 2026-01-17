@@ -10,7 +10,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiBody,
-  ApiResponse,
 } from '@nestjs/swagger';
 import { AccessRoles } from 'src/common/decorator/roles.decorator';
 import { CookieGetter } from 'src/common/decorator/cookie-getter.decorator';

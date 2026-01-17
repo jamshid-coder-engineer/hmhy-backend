@@ -4,8 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Telegraf } from 'telegraf';
-import { Student } from '../../core/entity/student.entity'; // Importlarni tekshiring
-import { Lesson } from '../../core/entity/lesson.entity';   // Importlarni tekshiring
+import { Student } from '../../core/entity/student.entity'; 
+import { Lesson } from '../../core/entity/lesson.entity';   
 import { config } from 'src/config';
 
 @Injectable()
@@ -20,9 +20,9 @@ export class NotificationService implements OnModuleInit {
 async onModuleInit() {
   try {
     await this.bot.telegram.getMe()
-    console.log('✅ Telegram bot initialized')
+    console.log(' Telegram bot initialized')
   } catch (error) {
-    console.error('❌ Telegram bot init failed:', error.message)
+    console.error(' Telegram bot init failed:', error.message)
   }
 }
 
@@ -35,10 +35,7 @@ async onModuleInit() {
     const startWindow = new Date(now.getTime() - 5  * 60000);
     const endWindow = new Date(now.getTime() + 25 * 60000);
 
-    // this.logger.log('=============================================');
-    // this.logger.log(`⏰ Hozirgi vaqt (Server): ${now.toString()}`);
-    // this.logger.log(`🔎 Qidirilayotgan oraliq: ${startWindow.getHours()}:${startWindow.getMinutes()} dan ${endWindow.getHours()}:${endWindow.getMinutes()} gacha`);
-
+    
     try {
       const upcomingLessons = await this.lessonRepo.find({
         where: {
@@ -47,10 +44,8 @@ async onModuleInit() {
         relations: ['student'], 
       });
 
-      // this.logger.log(`📊 Oraliqqa tushgan darslar soni: ${upcomingLessons.length}`);
 
       if (upcomingLessons.length === 0) {
-        // this.logger.warn('⚠️ Oraliqda dars topilmadi. Bazadagi yaqin 2 soatlik darslarni tekshiramiz...');
         
         const next2Hours = new Date(now.getTime() + 120 * 60000); 
         const allUpcoming = await this.lessonRepo.find({
@@ -62,18 +57,13 @@ async onModuleInit() {
         });
 
         if (allUpcoming.length > 0) {
-          // this.logger.log('💡 Bazada quyidagi darslar mavjud (Vaqtni solishtiring!):');
           allUpcoming.forEach(l => {
-            // this.logger.log(` - Dars: "${l.name}" | Vaqti: ${l.startTime} | (JS Date: ${new Date(l.startTime).toString()})`);
           });
         } else {
-          // this.logger.error('Bazada yaqin 2 soat ichida umuman dars yoq! Yangi dars yarating.');
         }
       }
 
-      // Topilgan darslarga xabar yuborish
       for (const lesson of upcomingLessons) {
-        // ManyToOne bo'lgani uchun lesson.student bitta obyekt
         const student = lesson.student;
 
         if (!student) {
@@ -85,10 +75,8 @@ async onModuleInit() {
       }
 
     } catch (error) {
-      // this.logger.error('Darslarni qidirishda xatolik:', error.message);
     }
     
-    // this.logger.log('=============================================');
   }
 
   private async sendTelegramReminder(student: Student, lesson: Lesson) {
@@ -113,20 +101,15 @@ async onModuleInit() {
 
     try {
       if (!this.bot) {
-        // this.logger.error('Bot initialized emas.');
         return;
       }
 
       await this.bot.telegram.sendMessage(student.tgId, message, {
         parse_mode: 'Markdown',
       });
-      // this.logger.log(
-      //   `✅ Xabar yuborildi: ${student.id || 'Student'} (TG: ${student.tgId})`,
-      // );
+     
     } catch (error) {
-      // this.logger.error(
-      //   `Telegram xabar yuborishda xatolik (TG ID: ${student.tgId}): ${error.message}`,
-      // );
+     
     }
   }
 }

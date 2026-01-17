@@ -53,4 +53,4 @@ import { TransactionModule } from './transaction/transaction.module';
     TransactionModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

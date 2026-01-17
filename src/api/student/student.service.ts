@@ -47,12 +47,10 @@ export class StudentService
     if (!ctx.from) throw new Error("Foydalanuvchi ma'lumotlari topilmadi");
   }
 
-  /** WebApp URL ni doim to'g'ri formatda berish */
   private getWebAppUrl() {
     return new URL('/student/login', config.FRONTEND_URL).toString();
   }
 
-  /** WebApp tugmalarini chiqarish (2 ta: WebApp + Browser) */
   private async sendOpenAppButtons(ctx: Context) {
     const url = this.getWebAppUrl();
 
@@ -68,7 +66,6 @@ export class StudentService
   }
 
   private initializeBot() {
-    // ✅ /openapp komandasi (har doim WebApp tugma chiqaradi)
     this.bot.command('openapp', async (ctx) => {
       try {
         await this.sendOpenAppButtons(ctx);
@@ -78,7 +75,6 @@ export class StudentService
       }
     });
 
-    // ✅ /start buyrug'i
     this.bot.start(async (ctx) => {
       try {
         this.assertFrom(ctx);
@@ -88,7 +84,6 @@ export class StudentService
           where: { tgId },
         });
 
-        // ✅ Agar oldin ro'yxatdan o'tgan bo'lsa: registration boshlanmaydi
         if (existingStudent) {
           await ctx.reply(
             `Siz allaqachon ro'yxatdan o'tgansiz!\n\n` +
@@ -98,15 +93,12 @@ export class StudentService
             Markup.removeKeyboard(),
           );
 
-          // WebApp tugmalarini berib chiqib ketamiz
           await this.sendOpenAppButtons(ctx);
 
-          // Har ehtimolga qarshi sessionni tozalaymiz
           this.sessions.delete(ctx.from.id);
           return;
         }
 
-        // ✅ Faqat yangi user bo'lsa registration boshlanadi
         this.sessions.set(ctx.from.id, { step: 'WAITING_FIRST_NAME' });
 
         await ctx.reply(
@@ -120,7 +112,6 @@ export class StudentService
       }
     });
 
-    // Text xabarlari handler
     this.bot.on('text', async (ctx) => {
       try {
         this.assertFrom(ctx);
@@ -138,7 +129,6 @@ export class StudentService
       }
     });
 
-    // Contact xabarlari handler
     this.bot.on('contact', async (ctx) => {
       try {
         this.assertFrom(ctx);
@@ -162,24 +152,20 @@ export class StudentService
       }
     });
 
-    // Xatoliklarni tutuvchi
     this.bot.catch((err, ctx) => {
       this.logger.error(`Bot error for ${ctx.from?.id}:`, err);
       ctx.reply("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.");
     });
 
-    // Botni ishga tushurish
     this.bot
       .launch()
       .then(() => this.logger.log('Student registration bot started successfully'))
       .catch((e) => this.logger.error('Student bot launch failed:', e));
 
-    // Graceful shutdown
     process.once('SIGINT', () => this.bot.stop('SIGINT'));
     process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
   }
 
-  // Ro'yxatdan o'tish qadamlarini ishlash
   private async handleRegistrationStep(ctx: Context, session: SessionData) {
     const text = (ctx.message as any).text?.trim();
     if (!text) {
@@ -240,7 +226,6 @@ export class StudentService
     }
   }
 
-  // Ro'yxatdan o'tishni yakunlash
   private async completeRegistration(
     ctx: Context,
     session: SessionData,
@@ -249,7 +234,6 @@ export class StudentService
     try {
       this.assertFrom(ctx);
 
-      // ✅ tgId allaqachon bor bo'lsa: duplicate tgId xatosini oldini olamiz
       const tgId = ctx.from.id.toString();
       const existingByTg = await this.studentRepo.findOne({ where: { tgId } });
       if (existingByTg) {
@@ -296,7 +280,6 @@ export class StudentService
         Markup.removeKeyboard(),
       );
 
-      // ✅ Ro'yxatdan o'tgandan keyin WebApp tugmalarini yuboramiz
       await this.sendOpenAppButtons(ctx);
 
       this.logger.log(

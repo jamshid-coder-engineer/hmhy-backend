@@ -61,10 +61,10 @@ export class TransactionService {
           id: t.studentRelation.id,
           name: `${t.studentRelation.firstName} ${t.studentRelation.lastName}`,
         } : null,
-        teacher: null, // Lesson relation qo'shib teacher olish mumkin
+        teacher: null, 
         amount: t.price,
         status: t.status,
-        provider: 'Click', // Keyinchalik real provider
+        provider: 'Click',
       })),
     });
   }

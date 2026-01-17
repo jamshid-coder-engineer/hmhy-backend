@@ -10,8 +10,6 @@ import {
   ParseUUIDPipe,
   NotFoundException,
   Query,
-  DefaultValuePipe,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -31,8 +29,7 @@ import type { IToken } from 'src/infrastructure/token/interface';
 import { CurrentUser } from 'src/common/decorator/current-user.decorator';
 import { Not } from 'typeorm';
 import { ChangePasswordDto } from '../teacher/dto/change-password.dto';
-import { UpdateTeacherDto } from '../teacher/dto/update-teacher.dto';
-import { stringToBytes } from 'node_modules/uuid/dist/v35';
+
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @ApiTags('Admin')

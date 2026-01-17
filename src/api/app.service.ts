@@ -145,6 +145,6 @@ export class Application {
       console.log(`Swagger docs: ${config.SWAGGER_URL}`);
       // console.log(`Server running on: ${config.BACKEND_URL}`);
     });
-    
+
   }
 }

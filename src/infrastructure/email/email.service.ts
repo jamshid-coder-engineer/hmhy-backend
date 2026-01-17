@@ -11,9 +11,7 @@ export class EmailService {
     private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * Welcome email yuborish (Student registration)
-   */
+  
   async sendWelcomeEmail(data: {
     email: string;
     firstName: string;
@@ -38,9 +36,7 @@ export class EmailService {
     }
   }
 
-  /**
-   * Lesson reminder email (30 min oldin)
-   */
+  
   async sendLessonReminder(data: {
     email: string;
     studentName: string;
@@ -69,9 +65,7 @@ export class EmailService {
     }
   }
 
-  /**
-   * Payment confirmation email
-   */
+  
   async sendPaymentConfirmation(data: {
     email: string;
     studentName: string;
@@ -100,9 +94,7 @@ export class EmailService {
     }
   }
 
-  /**
-   * Teacher payment notification
-   */
+
   async sendTeacherPaymentNotification(data: {
     email: string;
     teacherName: string;
@@ -129,9 +121,7 @@ export class EmailService {
     }
   }
 
-  /**
-   * Generic email yuborish
-   */
+
   async sendEmail(data: {
     to: string;
     subject: string;
@@ -153,9 +143,7 @@ export class EmailService {
     }
   }
 
-  /**
-   * Bulk email yuborish
-   */
+ 
   async sendBulkEmail(data: {
     recipients: string[];
     subject: string;
@@ -203,9 +191,7 @@ export class EmailService {
   }
 }
 
-/**
- * Teacher'ga welcome email
- */
+
 async sendTeacherWelcomeEmail(data: {
   email: string;
   firstName: string;
