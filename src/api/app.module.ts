@@ -48,11 +48,15 @@ TypeOrmModule.forRootAsync({
     }),
 
   
-RedisModule.forRoot({
-  type: 'single',
-  url: process.env.REDIS_URL,
-}),
+// RedisModule.forRoot({
+//   type: 'single',
+//   url: process.env.REDIS_URL,
+// }),
   
+
+...(process.env.REDIS_URL ? [
+  RedisModule.forRoot({ type: 'single', url: process.env.REDIS_URL }),
+] : []),
 
     AuthModule,
     AdminModule,
