@@ -33,6 +33,7 @@ interface ConfigType {
   REDIS_HOST: string;
   REDIS_PORT: number;
   REDIS_PASSWORD: string;
+  REDIS_URL: string;
 
   TELEGRAM_BOT_TOKEN: string;
 
@@ -79,6 +80,8 @@ export const config: ConfigType = {
   REDIS_HOST: String(process.env.REDIS_HOST),
   REDIS_PORT: Number(process.env.REDIS_PORT),
   REDIS_PASSWORD: String(process.env.REDIS_PASSWORD),
+  REDIS_URL: String(process.env.REDIS_URL),
+
 
   TELEGRAM_BOT_TOKEN: String(process.env.TELEGRAM_BOT_TOKEN),
 
@@ -86,7 +89,7 @@ export const config: ConfigType = {
     MAIL_HOST: String(process.env.MAIL_HOST),
     MAIL_PASS: String(process.env.MAIL_PASS),
     MAIL_PORT: Number(process.env.MAIL_PORT),
-    MAIL_SECURE: String(process.env.NODE_ENV) === 'production', 
+    MAIL_SECURE: String(process.env.NODE_ENV) === 'production',
     MAIL_USER: String(process.env.MAIL_USER),
   },
 };

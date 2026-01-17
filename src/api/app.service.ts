@@ -148,11 +148,9 @@ export class Application {
 
   // }
   private async startServer(app: NestExpressApplication): Promise<void> {
-  const port = Number(process.env.PORT) || 5000;
+ const port = Number(process.env.PORT) || 3000;
+await app.listen(port, '0.0.0.0');
+console.log('Server running on port:', port);
 
-  await app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port: ${port}`);
-  });
-}
-
+  }
 }

@@ -37,10 +37,11 @@ import { TransactionModule } from './transaction/transaction.module';
       signOptions: { expiresIn: config.TOKEN.ACCESS_TOKEN_TIME },
     }),
 
-    RedisModule.forRoot({
-      type: 'single',
-      url: `redis://:${config.REDIS_PASSWORD}@${config.REDIS_HOST}:${config.REDIS_PORT}`,
-    }),
+  
+  
+  ...(config.REDIS_URL ? [RedisModule.forRoot({ type: 'single', url: config.REDIS_URL })] : []),
+
+
 
     AuthModule,
     AdminModule,
