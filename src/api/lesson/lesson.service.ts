@@ -17,7 +17,6 @@ import type { LessonRepository } from 'src/core/repository/lesson.repository';
 import type { TeacherRepository } from 'src/core/repository/teacher.repository';
 import type { StudentRepository } from 'src/core/repository/student.repository';
 import { LessonComplete } from './dto/lesson-complete.dto';
-import { w } from 'node_modules/@faker-js/faker/dist/airline-DF6RqYmq';
 import { successRes } from 'src/infrastructure/response/success.response';
 import { LessonHistory } from 'src/core/entity/lessonHistory.entity';
 import type { LessonHistoryRepository } from 'src/core/repository/lessonHistory.repository';
