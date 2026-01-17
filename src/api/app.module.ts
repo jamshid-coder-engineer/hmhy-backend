@@ -8,7 +8,7 @@ import { TeacherModule } from './teacher/teacher.module';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { LessonModule } from './lesson/lesson.module';
-import { StudentModule } from './student/student.module';
+// import { StudentModule } from './student/student.module';
 import { LessonHistoryModule } from './lesson-history/lesson-history.module';
 import { NotificationModule } from './notification/notification.module';
 import { TransactionModule } from './transaction/transaction.module';
@@ -17,19 +17,24 @@ import { TransactionModule } from './transaction/transaction.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
-    TypeOrmModule.forRootAsync({
-      useFactory: async () => ({
-        type: 'postgres',
-        url: config.DB_URL,
-        synchronize: true,
-        entities: ['dist/core/entity/*.entity{.ts,.js}'],
-        autoLoadEntities: true,
-        ssl:
-          config.NODE_ENV === 'production'
-            ? { rejectUnauthorized: false }
-            : false,
-      }),
-    }),
+    // TypeOrmModule.forRootAsync({
+    //   useFactory: async () => ({
+    //     type: 'postgres',
+    //     url: config.DB_URL,
+    //     synchronize: true,
+    //     entities: ['dist/core/entity/*.entity{.ts,.js}'],
+    //     autoLoadEntities: true,
+    //     ssl:
+    //       config.NODE_ENV === 'production'
+    //         ? { rejectUnauthorized: false }
+    //         : false,
+    //   }),
+    // }),
+TypeOrmModule.forRoot({
+  type: 'postgres',
+  url: process.env.DB_URL,
+  ssl: { rejectUnauthorized: false },
+}),
 
     JwtModule.register({
       global: true,
@@ -38,15 +43,16 @@ import { TransactionModule } from './transaction/transaction.module';
     }),
 
   
+RedisModule.forRoot({
+  type: 'single',
+  url: process.env.REDIS_URL,
+}),
   
-  ...(config.REDIS_URL ? [RedisModule.forRoot({ type: 'single', url: config.REDIS_URL })] : []),
-
-
 
     AuthModule,
     AdminModule,
     TeacherModule,
-    StudentModule,
+    // StudentModule,
     LessonModule,
     LessonHistoryModule,
     LessonHistoryModule,
