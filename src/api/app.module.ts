@@ -6,7 +6,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { JwtModule } from '@nestjs/jwt';
-import { RedisModule } from '@nestjs-modules/ioredis';
+// import { RedisModule } from '@nestjs-modules/ioredis';
 import { LessonModule } from './lesson/lesson.module';
 // import { StudentModule } from './student/student.module';
 import { LessonHistoryModule } from './lesson-history/lesson-history.module';
@@ -54,9 +54,9 @@ TypeOrmModule.forRootAsync({
 // }),
   
 
-...(process.env.REDIS_URL ? [
-  RedisModule.forRoot({ type: 'single', url: process.env.REDIS_URL }),
-] : []),
+// ...(process.env.REDIS_URL ? [
+//   RedisModule.forRoot({ type: 'single', url: process.env.REDIS_URL }),
+// ] : []),
 
     AuthModule,
     AdminModule,

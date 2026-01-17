@@ -5,13 +5,11 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
-
   "scripts": {
     "build": "nest build",
     "start:prod": "node dist/main.js"
   },
   "dependencies": {
-    "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -31,7 +29,6 @@
     "geoip-lite": "^1.4.10",
     "googleapis": "^169.0.0",
     "https-proxy-agent": "^7.0.6",
-    "ioredis": "^5.8.2",
     "multer": "^2.0.2",
     "nest-winston": "^1.10.2",
     "nodemailer": "^7.0.11",
