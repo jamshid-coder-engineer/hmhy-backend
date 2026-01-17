@@ -5,11 +5,11 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
-"scripts": {
-  "build": "NODE_OPTIONS=--max-old-space-size=1024 nest build",
-  "start:prod": "node dist/main.js"
-}
-,
+
+  "scripts": {
+    "build": "nest build",
+    "start:prod": "node dist/main.js"
+  },
   "dependencies": {
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs-modules/mailer": "^2.0.2",
