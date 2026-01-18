@@ -33,17 +33,18 @@ import { TransactionModule } from './transaction/transaction.module';
 
 
 
+// src/app.module.ts ichida
 TypeOrmModule.forRootAsync({
   useFactory: async () => ({
     type: 'postgres',
-    url: config.DB_URL,
-    synchronize: true, 
+    // config.DB_URL o'rniga to'g'ridan-to'g'ri quyidagicha yozing:
+    url: process.env.DATABASE_URL || process.env.DB_URL, 
+    synchronize: true,
     entities: ['dist/core/entity/*.entity{.ts,.js}'],
     autoLoadEntities: true,
-    ssl: { rejectUnauthorized: false }, 
+    ssl: { rejectUnauthorized: false }, // Shartlarsiz doimiy true qilib turing
   }),
 }),
-
     JwtModule.register({
       global: true,
       secret: config.TOKEN.JWT_SECRET_KEY,
