@@ -17,29 +17,32 @@ import { TransactionModule } from './transaction/transaction.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
-    TypeOrmModule.forRootAsync({
-      useFactory: async () => ({
-        type: 'postgres',
-        url: config.DB_URL,
-        synchronize: true,
-        entities: ['dist/core/entity/*.entity{.ts,.js}'],
-        autoLoadEntities: true,
-        ssl:
-          config.NODE_ENV === 'production'
-            ? { rejectUnauthorized: false }
-            : false,
-      }),
-    }),
-// TypeOrmModule.forRootAsync({
-//   useFactory: () => ({
-//     type: 'postgres',
-//     url: process.env.DB_URL,
-//     ssl: { rejectUnauthorized: false },
-//     autoLoadEntities: true,
-//     synchronize: true,
-//   }),
-// }),
+    // TypeOrmModule.forRootAsync({
+    //   useFactory: async () => ({
+    //     type: 'postgres',
+    //     url: config.DB_URL,
+    //     synchronize: true,
+    //     entities: ['dist/core/entity/*.entity{.ts,.js}'],
+    //     autoLoadEntities: true,
+    //     ssl:
+    //       config.NODE_ENV === 'production'
+    //         ? { rejectUnauthorized: false }
+    //         : false,
+    //   }),
+    // }),
 
+
+
+TypeOrmModule.forRootAsync({
+  useFactory: async () => ({
+    type: 'postgres',
+    url: config.DB_URL,
+    synchronize: true, 
+    entities: ['dist/core/entity/*.entity{.ts,.js}'],
+    autoLoadEntities: true,
+    ssl: { rejectUnauthorized: false }, 
+  }),
+}),
 
     JwtModule.register({
       global: true,
