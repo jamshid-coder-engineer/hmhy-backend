@@ -5,10 +5,10 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
-  "scripts": {
-    "build": "nest build",
-    "start:prod": "node dist/main.js"
-  },
+ "scripts": {
+  "build": "nest build",
+  "start:prod": "node dist/main"
+},
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^11.0.1",
