@@ -93,7 +93,7 @@ let LessonService = class LessonService extends base_service_1.BaseService {
                     end: { dateTime: endTime.toISOString(), timeZone: 'Asia/Tashkent' },
                     conferenceData: {
                         createRequest: {
-                            requestId: `lesson-${Date.now()}`,
+                            requestId: `lesson-${Date.now()}-${Math.random().toString(36).substring(7)}`,
                             conferenceSolutionKey: { type: 'hangoutsMeet' },
                         },
                     },

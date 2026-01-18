@@ -32,14 +32,15 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { AuthGuard as AuthPassportGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/common/decorator/current-user.decorator';
 import type { IToken } from 'src/infrastructure/token/interface';
-// import Redis from 'ioredis';
-// import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { generateOtp } from 'src/common/util/otp-generator';
 import passport from 'passport';
 import { MailerService } from '@nestjs-modules/mailer';
 import { LoginTeacherDto } from './dto/login-teacher.dto';
 import { tr } from '@faker-js/faker';
 import { TeacherFilterDto } from './dto/teacher-filter.dto';
+import { GoogleAuthGuard } from 'src/common/guard/google-auth.guard';
 
 @ApiTags('Teacher - Google OAuth')
 @Controller('teacher')
@@ -48,19 +49,17 @@ export class TeacherController {
     private teacherService: TeacherService,
     private jwtService: JwtService,
     private readonly mailService: MailerService,
-    // @InjectRedis() private readonly redis: Redis,
+    @InjectRedis() private readonly redis: Redis,
   ) { }
 
 
 
-  @Get('google')
+ @Get('google')
   @ApiOperation({ summary: 'Google OAuth login' })
-  @UseGuards(AuthPassportGuard('google'))
+  @UseGuards(GoogleAuthGuard) 
   googleLogin() {
-
+    
   }
-
-
 
 
   @Get('google/callback')
@@ -90,6 +89,7 @@ export class TeacherController {
           id: teacher.id,
           email: teacher.email,
           role: teacher.role,
+          username: teacher.fullName
         });
 
         const redirectUrl =
@@ -100,14 +100,14 @@ export class TeacherController {
       }
 
       const redirectUrl = `${process.env.FRONTEND_URL}/teacher/otp-verify?email=${encodeURIComponent(googleUser.email)}`
-      console.log('Redirecting to OTP:', redirectUrl)
+      console.log('✅ Redirecting to OTP:', redirectUrl)
 
       return res.redirect(redirectUrl);
     } catch (error: any) {
-      console.error('Google Callback Error:', error)
+      console.error('❌ Google Callback Error:', error)
 
       const redirectUrl = `${process.env.FRONTEND_URL}/teacher/login?error=${encodeURIComponent(error.message)}`
-      console.log('Redirecting to Login with error:', redirectUrl)
+      console.log('❌ Redirecting to Login with error:', redirectUrl)
 
       return res.redirect(redirectUrl);
     }
@@ -128,6 +128,7 @@ export class TeacherController {
       throw new UnauthorizedException('Profile is not completed');
     }
 
+
     if (!teacher.isActive) {
       throw new UnauthorizedException('Waiting for admin approval');
     }
@@ -136,11 +137,13 @@ export class TeacherController {
       id: teacher.id,
       email: teacher.email,
       role: teacher.role,
+      username: teacher.fullName
     });
 
     return {
       token,
       role: teacher.role,
+      username: teacher.fullName
     };
   }
 
@@ -156,16 +159,16 @@ export class TeacherController {
 
     const otp = generateOtp();
 
-    // await this.redis.set(
-    //   `otp:google:${body.email}`,
-    //   JSON.stringify({
-    //     otp,
-    //     phoneNumber: body.phoneNumber,
-    //     password: body.password,
-    //   }),
-    //   'EX',
-    //   300,
-    // );
+    await this.redis.set(
+      `otp:google:${body.email}`,
+      JSON.stringify({
+        otp,
+        phoneNumber: body.phoneNumber,
+        password: body.password,
+      }),
+      'EX',
+      300,
+    );
 
     await this.mailService.sendMail({
       to: body.email,
@@ -186,24 +189,24 @@ export class TeacherController {
 
   @Post('google/verify-otp')
   async verifyOtp(@Body() body: VerifyOtpDto) {
-    // const data = await this.redis.get(`otp:google:${body.email}`);
-    // if (!data) throw new BadRequestException('OTP muddati otgan');
+    const data = await this.redis.get(`otp:google:${body.email}`);
+    if (!data) throw new BadRequestException('OTP muddati otgan');
 
-    // const parsed = JSON.parse(data);
-    // if (parsed.otp !== body.otp) throw new BadRequestException('OTP notogri');
+    const parsed = JSON.parse(data);
+    if (parsed.otp !== body.otp) throw new BadRequestException('OTP notogri');
 
-    // const teacher = await this.teacherService.activateTeacher(
-    //   body.email,
-    //   parsed.phoneNumber,
-    //   parsed.password,
-    // );
+    const teacher = await this.teacherService.activateTeacher(
+      body.email,
+      parsed.phoneNumber,
+      parsed.password,
+    );
 
-    // await this.redis.del(`otp:google:${body.email}`);
+    await this.redis.del(`otp:google:${body.email}`);
 
     return {
       message: "Ro'yxatdan o'tish yakunlandi",
       status: 'Pending Admin Approval',
-      // teacherId: teacher.id,
+      teacherId: teacher.id,
     };
   }
 
@@ -286,6 +289,7 @@ export class TeacherController {
   restoreTeacher(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherService.restoreTeacher(id);
   }
+
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RolesGuard)

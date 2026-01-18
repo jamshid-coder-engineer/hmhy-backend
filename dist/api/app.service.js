@@ -45,7 +45,6 @@ let Application = class Application {
     setupCors(app) {
         const allowedOrigins = [
             'http://localhost:5173',
-            'https://hmhy-frontend.netlify.app',
         ];
         const isNgrokOrigin = (origin) => /^https:\/\/.*\.ngrok-free\.dev$/.test(origin);
         app.enableCors({
@@ -122,9 +121,9 @@ let Application = class Application {
         swagger_1.SwaggerModule.setup(this.SWAGGER_PATH, app, document);
     }
     async startServer(app) {
-        const port = Number(process.env.PORT) || 3000;
-        await app.listen(port, '0.0.0.0');
-        console.log('Server running on port:', port);
+        await app.listen(config_1.config.PORT, () => {
+            console.log(`Swagger docs: ${config_1.config.SWAGGER_URL}`);
+        });
     }
 };
 exports.Application = Application;

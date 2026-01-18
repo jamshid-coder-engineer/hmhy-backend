@@ -11,6 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TeacherService = void 0;
 const common_1 = require("@nestjs/common");
@@ -18,14 +21,18 @@ const base_service_1 = require("../../infrastructure/base/base-service");
 const teacher_entity_1 = require("../../core/entity/teacher.entity");
 const typeorm_1 = require("@nestjs/typeorm");
 const crypto_service_1 = require("../../infrastructure/crypto/crypto.service");
+const ioredis_1 = __importDefault(require("ioredis"));
 const success_response_1 = require("../../infrastructure/response/success.response");
+const ioredis_2 = require("@nestjs-modules/ioredis");
 const typeorm_2 = require("typeorm");
 let TeacherService = class TeacherService extends base_service_1.BaseService {
     teacherRepo;
+    redis;
     crypto;
-    constructor(teacherRepo, crypto) {
+    constructor(teacherRepo, redis, crypto) {
         super(teacherRepo);
         this.teacherRepo = teacherRepo;
+        this.redis = redis;
         this.crypto = crypto;
     }
     async createIncompleteGoogleTeacher(data) {
@@ -73,6 +80,7 @@ let TeacherService = class TeacherService extends base_service_1.BaseService {
     async saveOtpToRedis(phoneNumber, data) {
         const key = `otp:google:${phoneNumber}`;
         try {
+            await this.redis.set(key, JSON.stringify(data), 'EX', 120);
         }
         catch (error) {
             throw new common_1.InternalServerErrorException('Redis-ga saqlashda xatolik');
@@ -80,9 +88,12 @@ let TeacherService = class TeacherService extends base_service_1.BaseService {
     }
     async getOtpFromRedis(phoneNumber) {
         const key = `otp:google:${phoneNumber}`;
+        const data = await this.redis.get(key);
+        return data ? JSON.parse(data) : null;
     }
     async deleteOtpFromRedis(phoneNumber) {
         const key = `otp:google:${phoneNumber}`;
+        await this.redis.del(key);
     }
     async findCompleteGoogleTeacher(email) {
         return await this.teacherRepo.findOne({ where: { email } });
@@ -95,6 +106,7 @@ let TeacherService = class TeacherService extends base_service_1.BaseService {
         if (!teacher)
             throw new common_1.NotFoundException('Foydalanuvchi topilmadi');
         const hashedPassword = await this.crypto.encrypt(password);
+        teacher.phoneNumber = phoneNumber;
         teacher.password = hashedPassword;
         teacher.isComplete = true;
         teacher.isActive = false;
@@ -178,6 +190,8 @@ exports.TeacherService = TeacherService;
 exports.TeacherService = TeacherService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(teacher_entity_1.Teacher)),
-    __metadata("design:paramtypes", [Object, crypto_service_1.CryptoService])
+    __param(1, (0, ioredis_2.InjectRedis)()),
+    __metadata("design:paramtypes", [Object, ioredis_1.default,
+        crypto_service_1.CryptoService])
 ], TeacherService);
 //# sourceMappingURL=teacher.service.js.map

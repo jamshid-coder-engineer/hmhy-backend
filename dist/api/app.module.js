@@ -15,7 +15,9 @@ const admin_module_1 = require("./admin/admin.module");
 const auth_module_1 = require("./auth/auth.module");
 const teacher_module_1 = require("./teacher/teacher.module");
 const jwt_1 = require("@nestjs/jwt");
+const ioredis_1 = require("@nestjs-modules/ioredis");
 const lesson_module_1 = require("./lesson/lesson.module");
+const student_module_1 = require("./student/student.module");
 const lesson_history_module_1 = require("./lesson-history/lesson-history.module");
 const notification_module_1 = require("./notification/notification.module");
 const transaction_module_1 = require("./transaction/transaction.module");
@@ -29,11 +31,13 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 useFactory: async () => ({
                     type: 'postgres',
-                    url: process.env.DATABASE_URL,
+                    url: config_2.config.DB_URL,
                     synchronize: true,
                     entities: ['dist/core/entity/*.entity{.ts,.js}'],
                     autoLoadEntities: true,
-                    ssl: { rejectUnauthorized: false },
+                    ssl: config_2.config.NODE_ENV === 'production'
+                        ? { rejectUnauthorized: false }
+                        : false,
                 }),
             }),
             jwt_1.JwtModule.register({
@@ -41,9 +45,18 @@ exports.AppModule = AppModule = __decorate([
                 secret: config_2.config.TOKEN.JWT_SECRET_KEY,
                 signOptions: { expiresIn: config_2.config.TOKEN.ACCESS_TOKEN_TIME },
             }),
+            ioredis_1.RedisModule.forRoot({
+                type: 'single',
+                options: {
+                    host: process.env.REDIS_HOST,
+                    port: Number(process.env.REDIS_PORT),
+                    password: process.env.REDIS_PASSWORD,
+                },
+            }),
             auth_module_1.AuthModule,
             admin_module_1.AdminModule,
             teacher_module_1.TeacherModule,
+            student_module_1.StudentModule,
             lesson_module_1.LessonModule,
             lesson_history_module_1.LessonHistoryModule,
             lesson_history_module_1.LessonHistoryModule,

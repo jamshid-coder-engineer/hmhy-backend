@@ -97,12 +97,21 @@ console.log("access sample:", teacher.googleAccessToken?.slice(0, 15));
     try {
   const calendar = await this.calendarService.getClient(teacher);
 
-  // agar getClient accessToken yangilagan bo‘lsa, DB ga saqlab qo‘yamiz
   await this.teacherRepo.save(teacher);
 
-  const event = await calendar.events.insert({
+//  const event = await calendar.events.insert({
+//     calendarId: 'primary',
+//     requestBody: {
+//       summary: `Dars: ${dto.name}`,
+//       description: 'Dars tavsifi',
+//       start: { dateTime: startTime.toISOString(), timeZone: 'Asia/Tashkent' },
+//       end: { dateTime: endTime.toISOString(), timeZone: 'Asia/Tashkent' },
+//     },
+// });
+
+const event = await calendar.events.insert({
     calendarId: 'primary',
-    conferenceDataVersion: 1,
+    conferenceDataVersion: 1, // Bu parametr Meet yaratish uchun shart
     requestBody: {
       summary: `Dars: ${dto.name}`,
       description: 'Dars uchun Google Meet havolasi',
@@ -110,12 +119,12 @@ console.log("access sample:", teacher.googleAccessToken?.slice(0, 15));
       end: { dateTime: endTime.toISOString(), timeZone: 'Asia/Tashkent' },
       conferenceData: {
         createRequest: {
-          requestId: `lesson-${Date.now()}`,
+          requestId: `lesson-${Date.now()}-${Math.random().toString(36).substring(7)}`, // Yanada aniqroq unique ID
           conferenceSolutionKey: { type: 'hangoutsMeet' },
         },
       },
     },
-  });
+});
       const lesson = this.lessonRepo.create({
         name: dto.name,
         startTime: startTime,

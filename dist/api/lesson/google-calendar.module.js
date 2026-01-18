@@ -8,12 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GoogleCalendarModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const teacher_entity_1 = require("../../core/entity/teacher.entity");
 const google_calendar_service_1 = require("./google-calendar.service");
 let GoogleCalendarModule = class GoogleCalendarModule {
 };
 exports.GoogleCalendarModule = GoogleCalendarModule;
 exports.GoogleCalendarModule = GoogleCalendarModule = __decorate([
     (0, common_1.Module)({
+        imports: [typeorm_1.TypeOrmModule.forFeature([teacher_entity_1.Teacher])],
         providers: [google_calendar_service_1.GoogleCalendarService],
         exports: [google_calendar_service_1.GoogleCalendarService],
     })

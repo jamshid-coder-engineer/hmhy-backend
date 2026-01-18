@@ -11,6 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TeacherController = void 0;
 const common_1 = require("@nestjs/common");
@@ -28,18 +31,23 @@ const role_guard_1 = require("../../common/guard/role.guard");
 const auth_guard_1 = require("../../common/guard/auth.guard");
 const passport_1 = require("@nestjs/passport");
 const current_user_decorator_1 = require("../../common/decorator/current-user.decorator");
+const ioredis_1 = __importDefault(require("ioredis"));
+const ioredis_2 = require("@nestjs-modules/ioredis");
 const otp_generator_1 = require("../../common/util/otp-generator");
 const mailer_1 = require("@nestjs-modules/mailer");
 const login_teacher_dto_1 = require("./dto/login-teacher.dto");
 const teacher_filter_dto_1 = require("./dto/teacher-filter.dto");
+const google_auth_guard_1 = require("../../common/guard/google-auth.guard");
 let TeacherController = class TeacherController {
     teacherService;
     jwtService;
     mailService;
-    constructor(teacherService, jwtService, mailService) {
+    redis;
+    constructor(teacherService, jwtService, mailService, redis) {
         this.teacherService = teacherService;
         this.jwtService = jwtService;
         this.mailService = mailService;
+        this.redis = redis;
     }
     googleLogin() {
     }
@@ -62,18 +70,19 @@ let TeacherController = class TeacherController {
                     id: teacher.id,
                     email: teacher.email,
                     role: teacher.role,
+                    username: teacher.fullName
                 });
                 const redirectUrl = `${process.env.FRONTEND_URL}/teacher/lesson?token=${encodeURIComponent(token)}`;
                 return res.redirect(redirectUrl);
             }
             const redirectUrl = `${process.env.FRONTEND_URL}/teacher/otp-verify?email=${encodeURIComponent(googleUser.email)}`;
-            console.log('Redirecting to OTP:', redirectUrl);
+            console.log('✅ Redirecting to OTP:', redirectUrl);
             return res.redirect(redirectUrl);
         }
         catch (error) {
-            console.error('Google Callback Error:', error);
+            console.error('❌ Google Callback Error:', error);
             const redirectUrl = `${process.env.FRONTEND_URL}/teacher/login?error=${encodeURIComponent(error.message)}`;
-            console.log('Redirecting to Login with error:', redirectUrl);
+            console.log('❌ Redirecting to Login with error:', redirectUrl);
             return res.redirect(redirectUrl);
         }
     }
@@ -92,10 +101,12 @@ let TeacherController = class TeacherController {
             id: teacher.id,
             email: teacher.email,
             role: teacher.role,
+            username: teacher.fullName
         });
         return {
             token,
             role: teacher.role,
+            username: teacher.fullName
         };
     }
     async sendOtp(body) {
@@ -106,6 +117,11 @@ let TeacherController = class TeacherController {
         if (phoneCheck)
             throw new common_1.ConflictException('Telefon raqami band');
         const otp = (0, otp_generator_1.generateOtp)();
+        await this.redis.set(`otp:google:${body.email}`, JSON.stringify({
+            otp,
+            phoneNumber: body.phoneNumber,
+            password: body.password,
+        }), 'EX', 300);
         await this.mailService.sendMail({
             to: body.email,
             subject: 'Royxatdan otish uchun tasdiqlash kodi',
@@ -121,9 +137,18 @@ let TeacherController = class TeacherController {
         return { message: 'OTP emailingizga yuborildi' };
     }
     async verifyOtp(body) {
+        const data = await this.redis.get(`otp:google:${body.email}`);
+        if (!data)
+            throw new common_1.BadRequestException('OTP muddati otgan');
+        const parsed = JSON.parse(data);
+        if (parsed.otp !== body.otp)
+            throw new common_1.BadRequestException('OTP notogri');
+        const teacher = await this.teacherService.activateTeacher(body.email, parsed.phoneNumber, parsed.password);
+        await this.redis.del(`otp:google:${body.email}`);
         return {
             message: "Ro'yxatdan o'tish yakunlandi",
             status: 'Pending Admin Approval',
+            teacherId: teacher.id,
         };
     }
     findAll(query) {
@@ -179,7 +204,7 @@ exports.TeacherController = TeacherController;
 __decorate([
     (0, common_1.Get)('google'),
     (0, swagger_1.ApiOperation)({ summary: 'Google OAuth login' }),
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    (0, common_1.UseGuards)(google_auth_guard_1.GoogleAuthGuard),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -330,8 +355,10 @@ __decorate([
 exports.TeacherController = TeacherController = __decorate([
     (0, swagger_1.ApiTags)('Teacher - Google OAuth'),
     (0, common_1.Controller)('teacher'),
+    __param(3, (0, ioredis_2.InjectRedis)()),
     __metadata("design:paramtypes", [teacher_service_1.TeacherService,
         jwt_1.JwtService,
-        mailer_1.MailerService])
+        mailer_1.MailerService,
+        ioredis_1.default])
 ], TeacherController);
 //# sourceMappingURL=teacher.controller.js.map
