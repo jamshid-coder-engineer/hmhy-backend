@@ -17,7 +17,6 @@ const teacher_module_1 = require("./teacher/teacher.module");
 const jwt_1 = require("@nestjs/jwt");
 const ioredis_1 = require("@nestjs-modules/ioredis");
 const lesson_module_1 = require("./lesson/lesson.module");
-const student_module_1 = require("./student/student.module");
 const lesson_history_module_1 = require("./lesson-history/lesson-history.module");
 const notification_module_1 = require("./notification/notification.module");
 const transaction_module_1 = require("./transaction/transaction.module");
@@ -56,7 +55,6 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             admin_module_1.AdminModule,
             teacher_module_1.TeacherModule,
-            student_module_1.StudentModule,
             lesson_module_1.LessonModule,
             lesson_history_module_1.LessonHistoryModule,
             lesson_history_module_1.LessonHistoryModule,

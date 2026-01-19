@@ -8,7 +8,7 @@ import { TeacherModule } from './teacher/teacher.module';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { LessonModule } from './lesson/lesson.module';
-import { StudentModule } from './student/student.module';
+// import { StudentModule } from './student/student.module';
 import { LessonHistoryModule } from './lesson-history/lesson-history.module';
 import { NotificationModule } from './notification/notification.module';
 import { TransactionModule } from './transaction/transaction.module';
@@ -65,7 +65,7 @@ RedisModule.forRoot({
     AuthModule,
     AdminModule,
     TeacherModule,
-    StudentModule,
+    // StudentModule,
     LessonModule,
     LessonHistoryModule,
     LessonHistoryModule,
